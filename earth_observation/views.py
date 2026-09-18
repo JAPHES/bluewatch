@@ -1,5 +1,4 @@
 import json
-from django.conf import settings
 from django.contrib import messages
 from django.core.exceptions import PermissionDenied
 from django.db import transaction
@@ -79,8 +78,7 @@ def survey_detail(request, pk):
     context = {
         "survey": survey, "candidate_form": candidate_form, "candidates": candidates,
         "boundary_json": json.dumps(survey.area.boundary), "candidates_json": json.dumps(candidate_markers),
-        "reports_json": json.dumps(report_markers), "satellite_url": settings.SATELLITE_TILE_URL,
-        "satellite_attribution": settings.SATELLITE_TILE_ATTRIBUTION,
+        "reports_json": json.dumps(report_markers),
     }
     return render(request, "earth_observation/survey_detail.html", context)
 
