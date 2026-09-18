@@ -25,7 +25,7 @@ Government accounts are administrator-created. There is no public self-registrat
 - Rule-based risk scoring and possible-duplicate detection in reusable Python services.
 - Controlled report transitions and append-only activity history. Operational reports cannot be deleted through the normal admin.
 - Cleanup teams, assignments, team-level object access, before/after evidence, disposal and recycling records, and officer verification.
-- County, cleanup-team and public dashboards using database records, Leaflet/OpenStreetMap and Chart.js.
+- County, cleanup-team and public dashboards using database records, Leaflet with configurable Esri basemaps, and Chart.js.
 - A county-scoped earth-observation workspace where staff draw an area of interest, switch to satellite imagery, overlay resident reports, map suspected candidates, record human review decisions and promote reviewed candidates into the normal report-verification workflow.
 - In-system notifications, read/unread actions, assignment-due command and future email/SMS extension points.
 - Professionally configured Django admin, repeatable demo data, and automated tests.
@@ -33,7 +33,7 @@ Government accounts are administrator-created. There is no public self-registrat
 
 ## Technology
 
-Python, Django, SQLite, HTML5, CSS3, Bootstrap 5, Bootstrap Icons, vanilla JavaScript, Leaflet/OpenStreetMap, Chart.js and Pillow. The model uses decimal latitude/longitude fields and isolated distance services, making a future PostgreSQL migration straightforward without requiring PostGIS for this MVP.
+Python, Django, SQLite, HTML5, CSS3, Bootstrap 5, Bootstrap Icons, vanilla JavaScript, Leaflet with configurable Esri topographic/satellite tiles, Chart.js and Pillow. The model uses decimal latitude/longitude fields and isolated distance services, making a future PostgreSQL migration straightforward without requiring PostGIS for this MVP.
 
 ## Architecture
 
@@ -105,6 +105,8 @@ The project reads process variables and optionally a local `.env` file through `
 | `DJANGO_SECURE_SSL_REDIRECT` | Redirect HTTP to HTTPS in production |
 | `DJANGO_HSTS_SECONDS` | HSTS duration after HTTPS is verified |
 | `BLUEWATCH_DEMO_PASSWORD` | Optional password applied explicitly to demo users |
+| `MAP_TILE_URL` | Browser-visible XYZ topographic tile URL used by interactive maps |
+| `MAP_TILE_ATTRIBUTION` | Required topographic imagery-provider attribution |
 | `SATELLITE_TILE_URL` | Browser-visible XYZ imagery tile URL used by the review map |
 | `SATELLITE_TILE_ATTRIBUTION` | Required imagery-provider attribution shown on the map |
 
