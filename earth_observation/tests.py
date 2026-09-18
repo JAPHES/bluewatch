@@ -1,4 +1,5 @@
 import base64
+import secrets
 from django.core.files.uploadedfile import SimpleUploadedFile
 from django.test import TestCase
 from django.urls import reverse
@@ -15,12 +16,13 @@ BOUNDARY = {"type": "Polygon", "coordinates": [[[39.60, -4.10], [39.75, -4.10], 
 
 class EarthObservationTests(TestCase):
     def setUp(self):
+        self.password = secrets.token_urlsafe(32)
         self.county = County.objects.create(name="Mapping Coast", code="MC")
         self.ward = Ward.objects.create(county=self.county, name="Ocean Ward")
         self.other_county = County.objects.create(name="Other Coast", code="OC")
-        self.officer = User.objects.create_user("mapper", password="StrongPass!789", role="officer", county=self.county)
-        self.other = User.objects.create_user("other_mapper", password="StrongPass!789", role="officer", county=self.other_county)
-        self.team = User.objects.create_user("field_member", password="StrongPass!789", role="team_member", county=self.county)
+        self.officer = User.objects.create_user("mapper", password=self.password, role="officer", county=self.county)
+        self.other = User.objects.create_user("other_mapper", password=self.password, role="officer", county=self.other_county)
+        self.team = User.objects.create_user("field_member", password=self.password, role="team_member", county=self.county)
         self.category = WasteCategory.objects.create(name="Mapped plastic", slug="mapped-plastic", risk_weight=8)
         self.area = AreaOfInterest.objects.create(name="Harbour scan", county=self.county, ward=self.ward, boundary=BOUNDARY, created_by=self.officer)
         self.survey = ObservationSurvey.objects.create(area=self.area, title="August imagery review", requested_by=self.officer, status="ready")
