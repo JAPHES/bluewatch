@@ -3,13 +3,12 @@ import os
 from pathlib import Path
 from django.core.exceptions import ImproperlyConfigured
 from django.core.management.utils import get_random_secret_key
+from dotenv import load_dotenv
 
 BASE_DIR = Path(__file__).resolve().parent.parent
-try:
-    from dotenv import load_dotenv
-    load_dotenv(BASE_DIR / ".env")
-except ImportError:
-    pass
+load_dotenv(BASE_DIR / ".env")
+
+
 def env_bool(name, default=False):
     return os.getenv(name, str(default)).lower() in {"1", "true", "yes", "on"}
 
