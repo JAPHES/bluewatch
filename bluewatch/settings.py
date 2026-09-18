@@ -34,7 +34,8 @@ MIDDLEWARE = [
 ROOT_URLCONF = "bluewatch.urls"
 TEMPLATES = [{"BACKEND": "django.template.backends.django.DjangoTemplates", "DIRS": [BASE_DIR / "templates"], "APP_DIRS": True,
     "OPTIONS": {"context_processors": ["django.template.context_processors.request", "django.contrib.auth.context_processors.auth",
-    "django.contrib.messages.context_processors.messages", "notifications.context_processors.unread_notifications"]}}]
+    "django.contrib.messages.context_processors.messages", "notifications.context_processors.unread_notifications",
+    "core.context_processors.map_configuration"]}}]
 WSGI_APPLICATION = "bluewatch.wsgi.application"
 DATABASES = {"default": {"ENGINE": "django.db.backends.sqlite3", "NAME": BASE_DIR / "db.sqlite3"}}
 AUTH_PASSWORD_VALIDATORS = [
@@ -64,6 +65,14 @@ SESSION_COOKIE_SECURE = env_bool("DJANGO_SECURE_COOKIES", not DEBUG)
 SECURE_SSL_REDIRECT = env_bool("DJANGO_SECURE_SSL_REDIRECT", False)
 SECURE_HSTS_SECONDS = int(os.getenv("DJANGO_HSTS_SECONDS", "0"))
 X_FRAME_OPTIONS = "DENY"
+MAP_TILE_URL = os.getenv(
+    "MAP_TILE_URL",
+    "https://services.arcgisonline.com/ArcGIS/rest/services/World_Topo_Map/MapServer/tile/{z}/{y}/{x}",
+)
+MAP_TILE_ATTRIBUTION = os.getenv(
+    "MAP_TILE_ATTRIBUTION",
+    "Tiles &copy; Esri and contributing data providers",
+)
 SATELLITE_TILE_URL = os.getenv(
     "SATELLITE_TILE_URL",
     "https://services.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}",
