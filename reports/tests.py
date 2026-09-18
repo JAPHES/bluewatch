@@ -1,4 +1,5 @@
 import base64
+import secrets
 from datetime import timedelta
 from django.core.cache import cache
 from django.core.files.uploadedfile import SimpleUploadedFile
@@ -48,10 +49,10 @@ class ServiceTests(ReportTestBase):
         primary=self.make_report(); candidate=self.make_report(latitude=-4.0401,longitude=39.6701)
         self.assertEqual(find_duplicate(candidate),primary)
     def test_valid_and_invalid_status_transitions(self):
-        user=User.objects.create_user("officer",password="StrongPass!789",role="officer",county=self.county)
+        user=User.objects.create_user("officer",password=secrets.token_urlsafe(32),role="officer",county=self.county)
         report=self.make_report(verification_status="verified",operational_status="under_review")
         transition_report(report,"verified",user,"Checked evidence"); report.refresh_from_db(); self.assertEqual(report.operational_status,"verified"); self.assertEqual(report.activities.count(),1)
         with self.assertRaises(ValueError): transition_report(report,"closed",user)
     def test_unverified_cannot_be_cleaned(self):
-        user=User.objects.create_user("officer2",password="StrongPass!789",role="officer",county=self.county); report=self.make_report()
+        user=User.objects.create_user("officer2",password=secrets.token_urlsafe(32),role="officer",county=self.county); report=self.make_report()
         with self.assertRaises(ValueError): transition_report(report,"cleaned",user)
