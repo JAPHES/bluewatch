@@ -34,7 +34,7 @@ class WasteCategory(models.Model):
 
 class Report(models.Model):
     class Source(models.TextChoices): PUBLIC="public","Public"; OFFICER="officer","Officer"
-    class Size(models.TextChoices): SMALL="small","Small (a few bags)"; MEDIUM="medium","Medium (pickup load)"; LARGE="large","Large (truck load)"; EXTENSIVE="extensive","Extensive"
+    class Size(models.TextChoices): UNKNOWN="unknown","Not estimated"; SMALL="small","Small (a few bags)"; MEDIUM="medium","Medium (pickup load)"; LARGE="large","Large (truck load)"; EXTENSIVE="extensive","Extensive"
     class Water(models.TextChoices): IN_WATER="in_water","In water"; UNDER_50="under_50","Under 50 metres"; UNDER_200="under_200","50–200 metres"; OVER_200="over_200","Over 200 metres"; UNKNOWN="unknown","Unknown"
     class Verification(models.TextChoices): PENDING="pending","Pending"; VERIFIED="verified","Verified"; REJECTED="rejected","Rejected"; DUPLICATE="duplicate","Duplicate"; NEEDS_INFO="needs_info","Needs More Information"
     class Status(models.TextChoices): REPORTED="reported","Reported"; REVIEW="under_review","Under Review"; VERIFIED="verified","Verified"; ASSIGNED="assigned","Assigned"; IN_PROGRESS="cleanup_in_progress","Cleanup in Progress"; CLEANED="cleaned","Cleaned"; CLOSED="closed","Closed"
