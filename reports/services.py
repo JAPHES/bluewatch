@@ -24,7 +24,7 @@ def find_duplicate(report):
 
 def calculate_risk(report):
     score = report.waste_category.risk_weight
-    score += {Report.Size.SMALL: 2, Report.Size.MEDIUM: 8, Report.Size.LARGE: 15, Report.Size.EXTENSIVE: 25}[report.estimated_size]
+    score += {Report.Size.UNKNOWN: 0, Report.Size.SMALL: 2, Report.Size.MEDIUM: 8, Report.Size.LARGE: 15, Report.Size.EXTENSIVE: 25}[report.estimated_size]
     score += {Report.Water.IN_WATER: 35, Report.Water.UNDER_50: 25, Report.Water.UNDER_200: 12, Report.Water.OVER_200: 2, Report.Water.UNKNOWN: 5}[report.proximity_to_water]
     sensitive = SensitiveLocation.objects.filter(is_active=True).filter(Q(county=report.county) | Q(county__isnull=True))
     for place in sensitive:
