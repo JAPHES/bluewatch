@@ -81,3 +81,5 @@ SATELLITE_TILE_ATTRIBUTION = os.getenv(
     "SATELLITE_TILE_ATTRIBUTION",
     "Imagery: Esri, Maxar, Earthstar Geographics, and the GIS User Community",
 )
+REVERSE_GEOCODER_URL = os.getenv("REVERSE_GEOCODER_URL", "https://nominatim.openstreetmap.org/reverse")
+REVERSE_GEOCODER_CONTACT = os.getenv("REVERSE_GEOCODER_CONTACT", "")
