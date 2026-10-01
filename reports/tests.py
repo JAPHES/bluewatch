@@ -1,7 +1,9 @@
 import base64
 import secrets
 from datetime import timedelta
+from unittest.mock import patch
 from django.core.cache import cache
+from django.core import signing
 from django.core.files.uploadedfile import SimpleUploadedFile
 from django.test import TestCase
 from django.urls import reverse
@@ -19,22 +21,38 @@ class ReportTestBase(TestCase):
         cache.clear(); self.county=County.objects.create(name="Test Coast",code="TC")
         self.ward=Ward.objects.create(county=self.county,name="Harbour")
         self.category=WasteCategory.objects.create(name="Plastic",slug="plastic",risk_weight=8)
+        self.unclassified,_=WasteCategory.objects.get_or_create(name="Unclassified photo report",slug="unclassified",defaults={"risk_weight":5})
     def make_report(self,**overrides):
         data={"county":self.county,"ward":self.ward,"location_description":"Near the demo bridge","latitude":-4.040000,"longitude":39.670000,"original_image":upload(),"waste_category":self.category,"estimated_size":"medium","proximity_to_water":"under_50","description":"Discarded waste visible from a safe public path.","date_observed":timezone.localdate()}
         data.update(overrides); return Report.objects.create(**data)
 
 class AnonymousReportingTests(ReportTestBase):
-    def payload(self): return {"county":self.county.pk,"ward":self.ward.pk,"location_description":"Near the demo bridge","latitude":"-4.040000","longitude":"39.670000","waste_category":self.category.pk,"estimated_size":"medium","proximity_to_water":"under_50","description":"Discarded waste visible from a safe public path.","date_observed":timezone.localdate().isoformat(),"reporter_name":"Private Person","reporter_phone":"+254700111222","reporter_email":"private@example.invalid","consent":"on","truthful":"on","original_image":upload()}
+    def payload(self):
+        location={"latitude":-4.04,"longitude":39.67,"county_id":self.county.pk,"ward_id":self.ward.pk,"location_description":"Detected harbour location","proximity_to_water":"under_50","water_label":"Within 50 m of Demo creek"}
+        return {"latitude":"-4.040000","longitude":"39.670000","location_token":signing.dumps(location,salt="public-report-location"),"reporter_email":"private@example.invalid","confirmation":"on","original_image":upload()}
     def test_anonymous_submission_and_reference(self):
         response=self.client.post(reverse("reports:submit"),self.payload())
         self.assertRedirects(response,reverse("reports:confirmation")); report=Report.objects.get()
         self.assertRegex(report.reference_code,r"^BW-\d{4}-[A-F0-9]{6}$")
+        self.assertEqual(report.county,self.county); self.assertEqual(report.ward,self.ward)
+        self.assertEqual(report.estimated_size,"unknown"); self.assertEqual(report.waste_category.slug,"unclassified")
+        self.assertEqual(report.date_observed,timezone.localdate()); self.assertEqual(report.reporter_name,"")
     def test_honeypot_rejects_submission(self):
         data=self.payload(); data["website"]="spam.example"
         self.assertEqual(self.client.post(reverse("reports:submit"),data).status_code,200); self.assertFalse(Report.objects.exists())
     def test_invalid_file_content_is_rejected(self):
         data=self.payload(); data["original_image"]=upload("fake.png",b"not an image")
         response=self.client.post(reverse("reports:submit"),data); self.assertContains(response,"valid image"); self.assertFalse(Report.objects.exists())
+    def test_tampered_location_is_rejected(self):
+        data=self.payload(); data["latitude"]="-4.050000"
+        response=self.client.post(reverse("reports:submit"),data)
+        self.assertContains(response,"Detect the location again"); self.assertFalse(Report.objects.exists())
+    @patch("reports.views.resolve_report_location")
+    def test_location_endpoint_returns_detected_safe_details(self,mocked):
+        mocked.return_value={"county":self.county,"ward":self.ward,"location_description":"Detected harbour location","proximity_to_water":"under_50","water_label":"Within 50 m of Demo creek"}
+        response=self.client.get(reverse("reports:resolve_location"),{"latitude":"-4.04","longitude":"39.67"})
+        self.assertEqual(response.status_code,200); payload=response.json()
+        self.assertTrue(payload["ok"]); self.assertEqual(payload["county"],self.county.name); self.assertEqual(payload["ward"],self.ward.name); self.assertTrue(payload["token"])
     def test_tracking_excludes_private_reporter_data(self):
         report=self.make_report(reporter_name="Secret Name",reporter_phone="0700111222",reporter_email="secret@example.invalid")
         response=self.client.post(reverse("reports:track"),{"reference_code":report.reference_code})
