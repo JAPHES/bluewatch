@@ -17,3 +17,41 @@ class LocationResolutionTests(TestCase):
         result=resolve_report_location(-4.09,39.66)
         self.assertEqual(result["county"],self.county); self.assertEqual(result["ward"],self.ward)
         self.assertEqual(result["proximity_to_water"],"under_50")
+
+    @patch("locations.services._fetch_reverse_geocode")
+    def test_resolves_kenyan_state_and_locality_alias_to_ward(self, fetch):
+        taita = County.objects.get(name="Taita Taveta")
+        ronge = Ward.objects.get(county=taita, name="Ronge")
+        fetch.return_value = {
+            "display_name": "Mariwenyi, Voi, Taita Taveta, Kenya",
+            "address": {
+                "country_code": "ke",
+                "village": "Mariwenyi",
+                "county": "Voi",
+                "state": "Taita Taveta",
+            },
+        }
+
+        result = resolve_report_location(-3.4181, 38.508956)
+
+        self.assertEqual(result["county"], taita)
+        self.assertEqual(result["ward"], ronge)
+
+    @patch("locations.services._fetch_reverse_geocode")
+    def test_resolves_msau_locality_to_ronge_ward(self, fetch):
+        taita = County.objects.get(name="Taita Taveta")
+        ronge = Ward.objects.get(county=taita, name="Ronge")
+        fetch.return_value = {
+            "display_name": "D538, Msau, Wundanyi, Taita Taveta, Kenya",
+            "address": {
+                "country_code": "ke",
+                "village": "Msau",
+                "county": "Wundanyi",
+                "state": "Taita Taveta",
+            },
+        }
+
+        result = resolve_report_location(-3.406575, 38.384342)
+
+        self.assertEqual(result["county"], taita)
+        self.assertEqual(result["ward"], ronge)
