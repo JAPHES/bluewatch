@@ -7,6 +7,7 @@ from urllib.request import Request, urlopen
 from django.conf import settings
 from django.core.cache import cache
 from django.db.models import Q
+from bluewatch.config import WARD_LOCALITY_ALIASES
 from .models import County, SensitiveLocation, Ward
 
 def distance_km(lat1, lon1, lat2, lon2):
@@ -32,6 +33,24 @@ def _match_named(queryset, candidates):
         name = _normalise_place(item.name)
         if any(name == candidate or name in candidate or candidate in name for candidate in cleaned if candidate):
             return item
+    return None
+
+
+def _match_ward(county, address):
+    ward_candidates = [address.get(key) for key in (
+        "suburb", "city_district", "district", "borough", "quarter",
+        "neighbourhood", "municipality", "town", "village",
+    )]
+    wards = Ward.objects.filter(county=county, is_active=True)
+    ward = _match_named(wards, ward_candidates)
+    if ward:
+        return ward
+
+    aliases = WARD_LOCALITY_ALIASES.get(_normalise_place(county.name), {})
+    for candidate in ward_candidates:
+        ward_name = aliases.get(_normalise_place(candidate))
+        if ward_name:
+            return _match_named(wards, [ward_name])
     return None
 
 
@@ -62,10 +81,13 @@ def resolve_report_location(latitude, longitude):
     address = result.get("address") or {}
     if address.get("country_code", "").lower() != "ke":
         raise LocationResolutionError("BlueWatch reporting is currently limited to configured locations in Kenya.")
-    county = _match_named(County.objects.filter(is_active=True), [address.get(key) for key in ("county", "state_district", "state", "region", "city")])
+    # Kenya's Nominatim records commonly place the actual county in ``state``
+    # and a constituency/sub-county in ``county`` (for example Voi). Prefer
+    # the higher-level fields to avoid assigning the wrong administration.
+    county = _match_named(County.objects.filter(is_active=True), [address.get(key) for key in ("state", "region", "state_district", "county", "city")])
     if not county:
         raise LocationResolutionError("The detected county is not configured in BlueWatch.")
-    ward = _match_named(Ward.objects.filter(county=county, is_active=True), [address.get(key) for key in ("suburb", "city_district", "district", "borough", "quarter", "neighbourhood", "municipality", "town", "village")])
+    ward = _match_ward(county, address)
     if not ward:
         raise LocationResolutionError("The detected ward is not configured in BlueWatch. Ask an administrator to add it.")
     water_types = {SensitiveLocation.Type.RIVER, SensitiveLocation.Type.DRAIN, SensitiveLocation.Type.BEACH, SensitiveLocation.Type.MANGROVE, SensitiveLocation.Type.WETLAND, SensitiveLocation.Type.MPA}
