@@ -51,7 +51,7 @@ def public_dashboard(request):
     impacts=MarineImpactRecord.objects.all()
     monthly=list(reports.filter(operational_status__in=["cleaned","closed"]).annotate(month=TruncMonth("updated_at")).values("month").annotate(total=Count("id")).order_by("month"))
     categories=list(reports.values("waste_category__name").annotate(total=Count("id")).order_by("-total"))
-    markers=[{"lat":round(float(r.latitude),3),"lng":round(float(r.longitude),3),"risk":r.risk_level,"county":r.county.name} for r in reports.select_related("county")[:500]]
+    markers=[{"lat":round(float(r.latitude),3),"lng":round(float(r.longitude),3),"risk":r.risk_level,"county":r.county.name,"ward":r.ward.name,"category":r.waste_category.name,"status":r.get_operational_status_display(),"reported":r.date_submitted.strftime("%d %b %Y")} for r in reports.select_related("county","ward","waste_category")[:500]]
     metrics={"verified":reports.count(),"cleaned":reports.filter(operational_status__in=["cleaned","closed"]).count(),"removed":impacts.aggregate(x=Sum("waste_removed_kg"))["x"] or 0,"recycled":impacts.aggregate(x=Sum("recycled_kg"))["x"] or 0,"water_resolved":impacts.filter(high_risk_near_water_resolved=True).count()}
     return render(request,"dashboard/public.html",{"metrics":metrics,"monthly_json":json.dumps(monthly,default=str),"category_json":json.dumps(categories),"markers_json":json.dumps(markers)})
 
