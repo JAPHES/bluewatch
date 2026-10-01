@@ -1,15 +1,15 @@
 from django import forms
-from django.utils import timezone
-from .models import Report
+from .models import Report, validate_image
 
-class PublicReportForm(forms.ModelForm):
+class PublicReportForm(forms.Form):
     website = forms.CharField(required=False, widget=forms.HiddenInput)
-    consent = forms.BooleanField(label="I consent to BlueWatch processing this report for cleanup coordination.")
-    truthful = forms.BooleanField(label="I confirm this report is truthful to the best of my knowledge.")
-    class Meta:
-        model = Report
-        fields = ["original_image", "county", "ward", "location_description", "latitude", "longitude", "waste_category", "estimated_size", "proximity_to_water", "description", "date_observed", "reporter_name", "reporter_phone", "reporter_email"]
-        widgets = {"date_observed": forms.DateInput(attrs={"type":"date"}), "description": forms.Textarea(attrs={"rows":4}), "latitude": forms.NumberInput(attrs={"step":"0.000001"}), "longitude": forms.NumberInput(attrs={"step":"0.000001"})}
+    original_image = forms.ImageField(validators=[validate_image], label="Photograph")
+    reporter_email = forms.EmailField(required=False, label="Email address (optional)")
+    latitude = forms.DecimalField(max_digits=9, decimal_places=6, widget=forms.HiddenInput)
+    longitude = forms.DecimalField(max_digits=9, decimal_places=6, widget=forms.HiddenInput)
+    location_token = forms.CharField(widget=forms.HiddenInput)
+    confirmation = forms.BooleanField(label="I confirm this report is truthful and consent to its use for cleanup coordination.")
+
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
         for field in self.fields.values():
@@ -17,15 +17,6 @@ class PublicReportForm(forms.ModelForm):
     def clean_website(self):
         if self.cleaned_data.get("website"): raise forms.ValidationError("Submission rejected.")
         return ""
-    def clean_date_observed(self):
-        value = self.cleaned_data["date_observed"]
-        if value > timezone.localdate(): raise forms.ValidationError("Date observed cannot be in the future.")
-        return value
-    def clean(self):
-        data = super().clean()
-        county, ward = data.get("county"), data.get("ward")
-        if county and ward and ward.county_id != county.id: self.add_error("ward", "Select a ward in the chosen county.")
-        return data
 
 class TrackingForm(forms.Form):
     reference_code = forms.CharField(max_length=20, label="Report reference", widget=forms.TextInput(attrs={"class":"form-control", "placeholder":"BW-2607-ABC123"}))
