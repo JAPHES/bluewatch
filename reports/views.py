@@ -1,19 +1,41 @@
 from django.contrib import messages
+from django.core import signing
 from django.core.cache import cache
 from django.core.exceptions import PermissionDenied
+from django.http import JsonResponse
 from django.shortcuts import get_object_or_404, redirect, render
 from django.urls import reverse
-from django.views.decorators.http import require_http_methods
+from django.utils import timezone
+from django.views.decorators.http import require_GET, require_http_methods
 from accounts.access import roles_required
 from bluewatch.config import RATE_LIMIT_REPORTS, RATE_LIMIT_WINDOW_SECONDS
 from notifications.services import notify_critical_report
+from locations.models import County, Ward
+from locations.services import LocationResolutionError, resolve_report_location
 from .forms import OfficerReportForm, PublicReportForm, TrackingForm
-from .models import Report, ReportActivity
+from .models import Report, ReportActivity, WasteCategory
 from .services import assess_authorized_site, calculate_risk, find_duplicate, transition_report
 
 def _rate_key(request):
     forwarded = request.META.get("HTTP_X_FORWARDED_FOR", "").split(",")[0].strip()
     return "report-rate:" + (forwarded or request.META.get("REMOTE_ADDR", "unknown"))
+
+
+@require_GET
+def resolve_location(request):
+    rate_key = f"location-lookup:{_rate_key(request)}"
+    lookup_count = cache.get(rate_key, 0)
+    if lookup_count >= 30:
+        return JsonResponse({"ok": False, "error": "Too many location checks. Please try again later."}, status=429)
+    try:
+        latitude = float(request.GET.get("latitude", "")); longitude = float(request.GET.get("longitude", ""))
+        resolved = resolve_report_location(latitude, longitude)
+    except (TypeError, ValueError, LocationResolutionError) as exc:
+        return JsonResponse({"ok": False, "error": str(exc) or "Select a valid map point."}, status=422)
+    cache.set(rate_key, lookup_count + 1, 60 * 60)
+    payload = {"latitude": round(latitude, 6), "longitude": round(longitude, 6), "county_id": resolved["county"].pk, "ward_id": resolved["ward"].pk, "location_description": resolved["location_description"], "proximity_to_water": resolved["proximity_to_water"], "water_label": resolved["water_label"]}
+    token = signing.dumps(payload, salt="public-report-location", compress=True)
+    return JsonResponse({"ok": True, "county": resolved["county"].name, "ward": resolved["ward"].name, "location": resolved["location_description"], "water": resolved["water_label"], "token": token})
 
 @require_http_methods(["GET", "POST"])
 def submit_report(request):
@@ -23,7 +45,21 @@ def submit_report(request):
         if count >= RATE_LIMIT_REPORTS:
             form.add_error(None, "Too many recent submissions. Please try again later.")
         else:
-            report = form.save(commit=False); report.source = Report.Source.PUBLIC; report.save()
+            try:
+                location = signing.loads(form.cleaned_data["location_token"], salt="public-report-location", max_age=60 * 60)
+                if abs(float(form.cleaned_data["latitude"]) - float(location["latitude"])) > 0.000002 or abs(float(form.cleaned_data["longitude"]) - float(location["longitude"])) > 0.000002:
+                    raise signing.BadSignature
+                county = County.objects.get(pk=location["county_id"], is_active=True)
+                ward = Ward.objects.get(pk=location["ward_id"], county=county, is_active=True)
+                category = WasteCategory.objects.get(slug="unclassified", is_active=True)
+            except (signing.BadSignature, signing.SignatureExpired, County.DoesNotExist, Ward.DoesNotExist, WasteCategory.DoesNotExist, KeyError):
+                form.add_error(None, "Detect the location again before submitting this report.")
+                return render(request, "reports/submit.html", {"form": form})
+            report = Report.objects.create(source=Report.Source.PUBLIC, county=county, ward=ward,
+                location_description=location["location_description"], latitude=location["latitude"], longitude=location["longitude"],
+                original_image=form.cleaned_data["original_image"], waste_category=category, estimated_size=Report.Size.UNKNOWN,
+                proximity_to_water=location["proximity_to_water"], description="Quick public photo report; classification and details require officer review.",
+                date_observed=timezone.localdate(), reporter_email=form.cleaned_data["reporter_email"])
             assess_authorized_site(report)
             duplicate = find_duplicate(report)
             if duplicate: report.possible_duplicate_of = duplicate
