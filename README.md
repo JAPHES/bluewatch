@@ -109,6 +109,8 @@ The project reads process variables and optionally a local `.env` file through `
 | `MAP_TILE_ATTRIBUTION` | Required topographic imagery-provider attribution |
 | `SATELLITE_TILE_URL` | Browser-visible XYZ imagery tile URL used by the review map |
 | `SATELLITE_TILE_ATTRIBUTION` | Required imagery-provider attribution shown on the map |
+| `REVERSE_GEOCODER_URL` | Server-side reverse-geocoding endpoint used for quick reports |
+| `REVERSE_GEOCODER_CONTACT` | Public support contact included in the geocoder User-Agent |
 
 Generate a secret with `python -c "from django.core.management.utils import get_random_secret_key; print(get_random_secret_key())"`. Never commit the result.
 
@@ -147,7 +149,11 @@ python manage.py notify_due_assignments
 
 ## Anonymous reporting and privacy
 
-The reporter chooses **Use My Current Location** before the browser asks for location permission, or selects the map point manually. The server validates county/ward consistency, date, coordinates and actual image content; file extensions alone are not trusted. Randomised upload names avoid user-controlled paths. A hidden honeypot and cache-backed per-IP rate limit reduce basic spam.
+The quick public form asks only for a photograph, a current-location/map point, an optional email address and one confirmation checkbox. After the reporter chooses **Use My Current Location** (or taps the map), BlueWatch reverse-geocodes the point into a configured county and ward, timestamps submission automatically and calculates proximity to registered sensitive water locations. The signed location result prevents hidden-field tampering. Waste category and size remain unclassified until officer review rather than being guessed.
+
+Reverse geocoding is configurable through `REVERSE_GEOCODER_URL` and `REVERSE_GEOCODER_CONTACT`. The default public Nominatim endpoint is cached for 24 hours, serialized to no more than one upstream request per second, limited per client and identified with a BlueWatch User-Agent. Review the provider policy before production and use a contracted or self-hosted provider at scale.
+
+The server validates coordinates and actual image content; file extensions alone are not trusted. Randomised upload names avoid user-controlled paths. A hidden honeypot and cache-backed per-IP submission limit reduce basic spam.
 
 After submission, a reference such as `BW-2607-A1B2C3` is shown once and can be copied. Tracking uses this reference—not a database ID—and never renders names, phone numbers, email, exact staff details or internal notes. Public map coordinates are rounded. Configure a shared cache and trusted proxy/IP handling before multi-instance production deployment.
 
