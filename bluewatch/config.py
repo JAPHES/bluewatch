@@ -8,3 +8,13 @@ RISK_THRESHOLDS = {"critical": 70, "high": 45, "moderate": 20}
 MAX_IMAGE_BYTES = 5 * 1024 * 1024
 RATE_LIMIT_REPORTS = 5
 RATE_LIMIT_WINDOW_SECONDS = 3600
+
+# Nominatim does not always return Kenya's county-assembly ward level. These
+# aliases map known locality labels to configured wards and can be extended as
+# coverage expands. Keys are normalized by locations.services.
+WARD_LOCALITY_ALIASES = {
+    "taita taveta": {
+        "mariwenyi": "Ronge",
+        "msau": "Ronge",
+    },
+}
