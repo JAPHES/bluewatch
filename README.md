@@ -122,7 +122,7 @@ Create the first system administrator with:
 python manage.py createsuperuser
 ```
 
-Further government users can be created in Django admin or from **Add staff** by an authorised administrator. County administrators can create officers, team members and analysts only within their county. Officers and analysts cannot create accounts. Cleanup team members see only assignments belonging to their team.
+Further government users can be created in Django admin or from **Add staff** by an authorised administrator. The Add staff form asks for first name, last name, email, role, and one password. It uses the email address as the new account's internal login identifier, so staff sign in with email; existing username based accounts continue to work. Password rules are enforced on the server and displayed when the submitted password fails validation. County administrators can create officers, team members and analysts only within their county. A system administrator without a county must select one when creating county staff. Officers and analysts cannot create accounts. Cleanup team members see only assignments belonging to their team.
 
 ## Demo data
 
