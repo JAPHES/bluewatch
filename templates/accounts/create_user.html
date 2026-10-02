@@ -1,1 +1,99 @@
-{% extends 'base.html' %}{% block title %}Create government account — BlueWatch{% endblock %}{% block content %}<div class="container py-5"><div class="row justify-content-center"><div class="col-lg-7"><h1>Create government account</h1><p>Accounts are administrator-created; public self-registration is disabled.</p><form method="post" class="form-card">{% csrf_token %}{{ form.as_p }}<button class="btn btn-ocean">Create account</button></form></div></div></div>{% endblock %}
+{% extends 'base.html' %}
+{% block title %}Add staff — BlueWatch{% endblock %}
+{% block content %}
+<div class="staff-page">
+  <div class="container py-5">
+    <div class="row justify-content-center g-4">
+      <div class="col-lg-8 col-xl-7">
+        <a class="staff-back-link" href="{% url 'dashboard:county' %}"><i class="bi bi-arrow-left" aria-hidden="true"></i> Back to dashboard</a>
+        <div class="staff-heading mt-3 mb-4">
+          <span class="staff-heading-icon"><i class="bi bi-person-plus" aria-hidden="true"></i></span>
+          <div>
+            <span class="eyebrow text-ocean mb-1">Team management</span>
+            <h1 class="mb-1">Add a staff member</h1>
+            <p class="mb-0 text-muted">Create a secure BlueWatch account for your team.</p>
+          </div>
+        </div>
+
+        <form method="post" class="staff-form-card" novalidate>
+          {% csrf_token %}
+          {% if form.non_field_errors %}<div class="alert alert-danger" role="alert">{{ form.non_field_errors }}</div>{% endif %}
+          <div class="staff-form-intro">
+            <h2 class="h5 mb-1">Staff details</h2>
+            <p class="small text-muted mb-0">Names may contain spaces, accents, apostrophes and hyphens.</p>
+          </div>
+          <div class="row g-3 mt-1">
+            <div class="col-md-6">
+              <label class="form-label" for="{{ form.first_name.id_for_label }}">First name <span class="text-danger" aria-hidden="true">*</span></label>
+              {{ form.first_name }}
+              {% for error in form.first_name.errors %}<div class="invalid-feedback d-block" role="alert">{{ error }}</div>{% endfor %}
+            </div>
+            <div class="col-md-6">
+              <label class="form-label" for="{{ form.last_name.id_for_label }}">Last name <span class="text-danger" aria-hidden="true">*</span></label>
+              {{ form.last_name }}
+              {% for error in form.last_name.errors %}<div class="invalid-feedback d-block" role="alert">{{ error }}</div>{% endfor %}
+            </div>
+            <div class="col-12">
+              <label class="form-label" for="{{ form.email.id_for_label }}">Work email <span class="text-danger" aria-hidden="true">*</span></label>
+              {{ form.email }}
+              <div class="form-text">This email is used to sign in. No separate username is needed.</div>
+              {% for error in form.email.errors %}<div class="invalid-feedback d-block" role="alert">{{ error }}</div>{% endfor %}
+            </div>
+            <div class="col-12">
+              <label class="form-label" for="{{ form.role.id_for_label }}">Role <span class="text-danger" aria-hidden="true">*</span></label>
+              {{ form.role }}
+              <div class="form-text">The role controls which BlueWatch tools this person can use.</div>
+              {% for error in form.role.errors %}<div class="invalid-feedback d-block" role="alert">{{ error }}</div>{% endfor %}
+            </div>
+            {% if form.county %}
+            <div class="col-12">
+              <label class="form-label" for="{{ form.county.id_for_label }}">Assigned county</label>
+              {{ form.county }}
+              <div class="form-text">Required for county staff so their access stays within the right county.</div>
+              {% for error in form.county.errors %}<div class="invalid-feedback d-block" role="alert">{{ error }}</div>{% endfor %}
+            </div>
+            {% endif %}
+            <div class="col-12">
+              <label class="form-label" for="{{ form.password.id_for_label }}">Password <span class="text-danger" aria-hidden="true">*</span></label>
+              <div class="input-group staff-password-group">
+                {{ form.password }}
+                <button type="button" class="btn staff-password-toggle" aria-label="Show password" aria-pressed="false" data-password-toggle><i class="bi bi-eye" aria-hidden="true"></i></button>
+              </div>
+              {% if form.password.errors %}
+              <div class="staff-password-errors" role="alert">
+                <span class="fw-semibold">Choose a stronger password:</span>
+                <ul class="mb-0 ps-3">{% for error in form.password.errors %}<li>{{ error }}</li>{% endfor %}</ul>
+              </div>
+              {% endif %}
+            </div>
+          </div>
+          <div class="staff-form-actions">
+            <a class="btn btn-outline-secondary" href="{% url 'dashboard:county' %}">Cancel</a>
+            <button type="submit" class="btn btn-ocean"><i class="bi bi-person-check me-1" aria-hidden="true"></i> Create staff account</button>
+          </div>
+        </form>
+      </div>
+      <div class="col-lg-4 col-xl-3">
+        <aside class="staff-aside">
+          <span class="staff-aside-icon"><i class="bi bi-shield-check" aria-hidden="true"></i></span>
+          <h2 class="h5 mt-3">Managed access</h2>
+          <p class="mb-3">Only an administrator can create staff accounts. Each person signs in with their own email and password.</p>
+          {% if user.county %}<div class="staff-county-note"><i class="bi bi-geo-alt" aria-hidden="true"></i> New staff will be assigned to <strong>{{ user.county.name }}</strong>.</div>{% endif %}
+        </aside>
+      </div>
+    </div>
+  </div>
+</div>
+{% endblock %}
+{% block scripts %}
+<script>
+document.querySelector('[data-password-toggle]')?.addEventListener('click', function () {
+  const input = document.getElementById('{{ form.password.id_for_label }}');
+  const showing = input.type === 'password';
+  input.type = showing ? 'text' : 'password';
+  this.setAttribute('aria-pressed', String(showing));
+  this.setAttribute('aria-label', showing ? 'Hide password' : 'Show password');
+  this.querySelector('i').className = showing ? 'bi bi-eye-slash' : 'bi bi-eye';
+});
+</script>
+{% endblock %}
