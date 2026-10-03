@@ -67,11 +67,15 @@ SECURE_HSTS_SECONDS = int(os.getenv("DJANGO_HSTS_SECONDS", "0"))
 X_FRAME_OPTIONS = "DENY"
 MAP_TILE_URL = os.getenv(
     "MAP_TILE_URL",
-    "https://services.arcgisonline.com/ArcGIS/rest/services/World_Topo_Map/MapServer/tile/{z}/{y}/{x}",
+    "https://services.arcgisonline.com/ArcGIS/rest/services/World_Street_Map/MapServer/tile/{z}/{y}/{x}",
 )
 MAP_TILE_ATTRIBUTION = os.getenv(
     "MAP_TILE_ATTRIBUTION",
     "Tiles &copy; Esri and contributing data providers",
+)
+MAP_VECTOR_STYLE_URL = os.getenv(
+    "MAP_VECTOR_STYLE_URL",
+    "https://tiles.openfreemap.org/styles/liberty",
 )
 SATELLITE_TILE_URL = os.getenv(
     "SATELLITE_TILE_URL",
