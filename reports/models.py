@@ -1,5 +1,6 @@
 import secrets
 from pathlib import Path
+from urllib.parse import urlencode
 from django.conf import settings
 from django.core.exceptions import ValidationError
 from django.db import models
@@ -76,6 +77,16 @@ class Report(models.Model):
         if not self.reference_code: self.reference_code = generate_reference()
         super().save(*args, **kwargs)
     def __str__(self): return self.reference_code
+
+    @property
+    def google_directions_url(self):
+        """Open the saved, exact case location in Google Maps for authorised staff."""
+        query = urlencode({
+            "api": "1",
+            "destination": f"{self.latitude:.6f},{self.longitude:.6f}",
+            "travelmode": "driving",
+        })
+        return f"https://www.google.com/maps/dir/?{query}"
 
 class ReportActivity(models.Model):
     report = models.ForeignKey(Report, on_delete=models.PROTECT, related_name="activities")
