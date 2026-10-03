@@ -26,7 +26,12 @@ class CleanupTests(TestCase):
         self.report=Report.objects.create(county=self.c1,ward=self.w1,location_description="Demo bay",latitude=-4.1,longitude=39.6,original_image=image("report.png"),waste_category=self.category,estimated_size="large",proximity_to_water="under_50",description="Test report",date_observed=timezone.localdate(),verification_status="verified",operational_status="assigned",assigned_officer=self.officer)
         self.assignment=CleanupAssignment.objects.create(report=self.report,assigned_team=self.team,assigned_officer=self.officer,priority="high",scheduled_cleanup_date=timezone.localdate()+timedelta(days=1),instructions="Collect safely")
     def test_cleanup_assignment_exists_and_team_member_can_access(self):
-        self.client.force_login(self.member); self.assertEqual(self.client.get(reverse("operations:detail",args=[self.assignment.pk])).status_code,200)
+        self.client.force_login(self.member)
+        response=self.client.get(reverse("operations:detail",args=[self.assignment.pk]))
+        self.assertEqual(response.status_code,200)
+        self.assertContains(response,"Directions in Google Maps")
+        self.assertContains(response,"destination=-4.100000%2C39.600000")
+        self.assertContains(response,"id=\"assignment-map\"")
     def test_other_county_cannot_access_assignment(self):
         self.client.force_login(self.other); self.assertEqual(self.client.get(reverse("operations:detail",args=[self.assignment.pk])).status_code,403)
     def test_cleanup_verification_closes_evidence_loop(self):
