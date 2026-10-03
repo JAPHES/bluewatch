@@ -9,4 +9,5 @@ def map_configuration(request):
         "map_vector_style_url": settings.MAP_VECTOR_STYLE_URL,
         "satellite_tile_url": settings.SATELLITE_TILE_URL,
         "satellite_tile_attribution": settings.SATELLITE_TILE_ATTRIBUTION,
+        "satellite_max_native_zoom": settings.SATELLITE_MAX_NATIVE_ZOOM,
     }
