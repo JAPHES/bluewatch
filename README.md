@@ -25,7 +25,7 @@ Government accounts are administrator-created. There is no public self-registrat
 - Rule-based risk scoring and possible-duplicate detection in reusable Python services.
 - Controlled report transitions and append-only activity history. Operational reports cannot be deleted through the normal admin.
 - Cleanup teams, assignments, team-level object access, before/after evidence, disposal and recycling records, and officer verification.
-- County, cleanup-team and public dashboards using database records, Leaflet with configurable Esri basemaps, and Chart.js.
+- County, cleanup-team and public dashboards using database records, Leaflet with an OpenFreeMap detailed street layer, configurable Esri fallback/satellite basemaps, and Chart.js.
 - A county-scoped earth-observation workspace where staff draw an area of interest, switch to satellite imagery, overlay resident reports, map suspected candidates, record human review decisions and promote reviewed candidates into the normal report-verification workflow.
 - In-system notifications, read/unread actions, assignment-due command and future email/SMS extension points.
 - Professionally configured Django admin, repeatable demo data, and automated tests.
@@ -33,7 +33,7 @@ Government accounts are administrator-created. There is no public self-registrat
 
 ## Technology
 
-Python, Django, SQLite, HTML5, CSS3, Bootstrap 5, Bootstrap Icons, vanilla JavaScript, Leaflet with configurable Esri topographic/satellite tiles, Chart.js and Pillow. The model uses decimal latitude/longitude fields and isolated distance services, making a future PostgreSQL migration straightforward without requiring PostGIS for this MVP.
+Python, Django, SQLite, HTML5, CSS3, Bootstrap 5, Bootstrap Icons, vanilla JavaScript, Leaflet, MapLibre GL, OpenFreeMap, configurable Esri satellite/fallback tiles, Chart.js and Pillow. The model uses decimal latitude/longitude fields and isolated distance services, making a future PostgreSQL migration straightforward without requiring PostGIS for this MVP.
 
 ## Architecture
 
@@ -105,9 +105,10 @@ The project reads process variables and optionally a local `.env` file through `
 | `DJANGO_SECURE_SSL_REDIRECT` | Redirect HTTP to HTTPS in production |
 | `DJANGO_HSTS_SECONDS` | HSTS duration after HTTPS is verified |
 | `BLUEWATCH_DEMO_PASSWORD` | Optional password applied explicitly to demo users |
-| `MAP_TILE_URL` | Browser-visible XYZ topographic tile URL used by interactive maps |
-| `MAP_TILE_ATTRIBUTION` | Required topographic imagery-provider attribution |
-| `SATELLITE_TILE_URL` | Browser-visible XYZ imagery tile URL used by the review map |
+| `MAP_VECTOR_STYLE_URL` | Browser-visible OpenFreeMap vector style URL for detailed streets (empty disables vector layer) |
+| `MAP_TILE_URL` | Browser-visible XYZ basic street fallback tile URL |
+| `MAP_TILE_ATTRIBUTION` | Required basic street-map provider attribution |
+| `SATELLITE_TILE_URL` | Browser-visible XYZ imagery tile URL used by interactive maps |
 | `SATELLITE_TILE_ATTRIBUTION` | Required imagery-provider attribution shown on the map |
 | `REVERSE_GEOCODER_URL` | Server-side reverse-geocoding endpoint used for quick reports |
 | `REVERSE_GEOCODER_CONTACT` | Public support contact included in the geocoder User-Agent |
@@ -156,6 +157,14 @@ Reverse geocoding is configurable through `REVERSE_GEOCODER_URL` and `REVERSE_GE
 The server validates coordinates and actual image content; file extensions alone are not trusted. Randomised upload names avoid user-controlled paths. A hidden honeypot and cache-backed per-IP submission limit reduce basic spam.
 
 After submission, a reference such as `BW-2607-A1B2C3` is shown once and can be copied. Tracking uses this reference—not a database ID—and never renders names, phone numbers, email, exact staff details or internal notes. Public map coordinates are rounded. Configure a shared cache and trusted proxy/IP handling before multi-instance production deployment.
+
+## Street maps and directions
+
+Interactive Leaflet maps load the detailed [OpenFreeMap](https://openfreemap.org/) Liberty vector street style through MapLibre GL, with an on-map control for switching to Esri satellite imagery and a metric scale. Satellite imagery is shown while the detailed style loads; the Esri World Street Map is a basic fallback if vector maps are unavailable. The earth-observation review canvas starts in satellite mode. Road labels and building outlines depend on the available OpenStreetMap data and zoom level, so they may differ from Google Maps. The county dashboard zooms to its report markers, and authorised case and cleanup-assignment pages show the exact saved report point. The public hotspot map continues to use rounded coordinates.
+
+Staff case and cleanup-assignment pages provide an **Open directions in Google Maps** link, built from the exact report coordinates using Google's [Maps URLs](https://developers.google.com/maps/documentation/urls/get-started). Opening the link requires no Google API key or BlueWatch billing account. Google Maps supplies the route on the user's device; BlueWatch does not calculate routes or continuously track staff. Team members should confirm the safe access point because a coordinate in a dumpsite does not necessarily mark a road entrance.
+
+The public OpenFreeMap service needs no registration or key, but does not offer an availability guarantee; the JavaScript falls back to the configured imagery/basic street provider if detailed maps cannot load. The `MAP_VECTOR_STYLE_URL`, `MAP_TILE_URL` and `SATELLITE_TILE_URL` settings can be changed for a suitable provider later. Keep each provider's required attribution visible and confirm its usage terms before production deployment. Do not replace these URLs with unofficial Google tile endpoints. All online basemaps require an internet connection.
 
 ## Earth observation and satellite mapping
 
