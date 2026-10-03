@@ -57,6 +57,20 @@ class AnonymousReportingTests(ReportTestBase):
         report=self.make_report(reporter_name="Secret Name",reporter_phone="0700111222",reporter_email="secret@example.invalid")
         response=self.client.post(reverse("reports:track"),{"reference_code":report.reference_code})
         self.assertContains(response,report.reference_code); self.assertNotContains(response,"Secret Name"); self.assertNotContains(response,"0700111222"); self.assertNotContains(response,"secret@example.invalid")
+        self.assertNotContains(response,"google.com/maps/dir")
+
+    def test_google_directions_use_exact_saved_coordinates_on_staff_case(self):
+        report=self.make_report(latitude=-3.418100,longitude=38.508956)
+        self.assertEqual(
+            report.google_directions_url,
+            "https://www.google.com/maps/dir/?api=1&destination=-3.418100%2C38.508956&travelmode=driving",
+        )
+        officer=User.objects.create_user("case_officer",password=secrets.token_urlsafe(32),role="officer",county=self.county)
+        self.client.force_login(officer)
+        response=self.client.get(reverse("reports:detail",args=[report.reference_code]))
+        self.assertContains(response,"Directions in Google Maps")
+        self.assertContains(response,"destination=-3.418100%2C38.508956")
+        self.assertContains(response,"id=\"case-map\"")
 
 class ServiceTests(ReportTestBase):
     def test_risk_scoring_is_rule_based_and_sensitive_to_water(self):
