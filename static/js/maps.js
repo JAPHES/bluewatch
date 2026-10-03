@@ -40,20 +40,30 @@
   }
 
   function addReliableBaseLayer(map, options) {
+    const mapConfig = window.BlueWatchMapConfig || {};
+    const satelliteMaxNativeZoom = Number(mapConfig.satelliteMaxNativeZoom) || 18;
     const basicStreet = L.tileLayer(options.primaryUrl, {
-      maxZoom: 19,
+      maxZoom: 20,
       attribution: options.primaryAttribution,
     });
     const satellite = L.tileLayer(options.fallbackUrl, {
-      maxZoom: 19,
+      maxZoom: 20,
+      // Esri can return a 200 OK "Map data not yet available" image at higher zooms.
+      maxNativeZoom: satelliteMaxNativeZoom,
       attribution: options.fallbackAttribution,
     });
-    const styleUrl = (window.BlueWatchMapConfig || {}).vectorStyleUrl;
+    const styleUrl = mapConfig.vectorStyleUrl;
     let street = basicStreet;
     let activeLayer = options.initialLayer === "satellite" || styleUrl ? satellite : basicStreet;
     const failedLayers = new Set();
     let manualSatelliteChoice = false;
     let switchingAutomatically = false;
+
+    function satelliteMessage() {
+      return map.getZoom() > satelliteMaxNativeZoom
+        ? "Showing enlarged zoom-" + satelliteMaxNativeZoom + " imagery; finer satellite detail is unavailable here."
+        : "Satellite imagery loaded.";
+    }
 
     const layerControl = L.control.layers(
       { "Streets and roads": basicStreet, "Satellite imagery": satellite },
@@ -69,9 +79,13 @@
       if (!switchingAutomatically) manualSatelliteChoice = event.layer === satellite;
       updateStatus(
         options.statusElementId,
-        event.layer === satellite ? "Satellite imagery selected." : "Street map selected.",
+        event.layer === satellite ? satelliteMessage() : "Street map selected.",
         false,
       );
+    });
+
+    map.on("zoomend", function () {
+      if (activeLayer === satellite) updateStatus(options.statusElementId, satelliteMessage(), false);
     });
 
     function switchLayer(next, message) {
@@ -94,11 +108,11 @@
         updateStatus(options.statusElementId, "Map imagery could not be loaded. Check your internet connection.", true);
         return;
       }
-      switchLayer(satellite, "Street map unavailable; satellite imagery loaded instead.");
+      switchLayer(satellite, "Street map unavailable; " + satelliteMessage());
     });
     satellite.on("load", function () {
       failedLayers.delete(satellite);
-      if (map.hasLayer(satellite)) updateStatus(options.statusElementId, "Satellite imagery loaded.", false);
+      if (map.hasLayer(satellite)) updateStatus(options.statusElementId, satelliteMessage(), false);
     });
     satellite.on("tileerror", function () {
       failedLayers.add(satellite);
@@ -130,7 +144,7 @@
             if (map.hasLayer(detailedStreet)) updateStatus(options.statusElementId, "Detailed street map loaded.", false);
           });
           vectorMap.once("error", function () {
-            if (!loaded && map.hasLayer(detailedStreet)) switchLayer(satellite, "Detailed street map unavailable; satellite imagery loaded instead.");
+            if (!loaded && map.hasLayer(detailedStreet)) switchLayer(satellite, "Detailed street map unavailable; " + satelliteMessage());
           });
         });
         if (options.initialLayer !== "satellite" && !manualSatelliteChoice) {
@@ -138,7 +152,7 @@
         }
       }).catch(function () {
         if (activeLayer === satellite) {
-          updateStatus(options.statusElementId, "Detailed street map unavailable; satellite imagery loaded.", false);
+          updateStatus(options.statusElementId, "Detailed street map unavailable; " + satelliteMessage(), false);
         }
       });
     }
