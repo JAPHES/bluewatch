@@ -110,6 +110,7 @@ The project reads process variables and optionally a local `.env` file through `
 | `MAP_TILE_ATTRIBUTION` | Required basic street-map provider attribution |
 | `SATELLITE_TILE_URL` | Browser-visible XYZ imagery tile URL used by interactive maps |
 | `SATELLITE_TILE_ATTRIBUTION` | Required imagery-provider attribution shown on the map |
+| `SATELLITE_MAX_NATIVE_ZOOM` | Highest satellite tile zoom requested (default 18); higher map zooms enlarge existing imagery |
 | `REVERSE_GEOCODER_URL` | Server-side reverse-geocoding endpoint used for quick reports |
 | `REVERSE_GEOCODER_CONTACT` | Public support contact included in the geocoder User-Agent |
 
@@ -164,7 +165,7 @@ Interactive Leaflet maps load the detailed [OpenFreeMap](https://openfreemap.org
 
 Staff case and cleanup-assignment pages provide an **Open directions in Google Maps** link, built from the exact report coordinates using Google's [Maps URLs](https://developers.google.com/maps/documentation/urls/get-started). Opening the link requires no Google API key or BlueWatch billing account. Google Maps supplies the route on the user's device; BlueWatch does not calculate routes or continuously track staff. Team members should confirm the safe access point because a coordinate in a dumpsite does not necessarily mark a road entrance.
 
-The public OpenFreeMap service needs no registration or key, but does not offer an availability guarantee; the JavaScript falls back to the configured imagery/basic street provider if detailed maps cannot load. The `MAP_VECTOR_STYLE_URL`, `MAP_TILE_URL` and `SATELLITE_TILE_URL` settings can be changed for a suitable provider later. Keep each provider's required attribution visible and confirm its usage terms before production deployment. Do not replace these URLs with unofficial Google tile endpoints. All online basemaps require an internet connection.
+The public OpenFreeMap service needs no registration or key, but does not offer an availability guarantee; the JavaScript falls back to the configured imagery/basic street provider if detailed maps cannot load. The `MAP_VECTOR_STYLE_URL`, `MAP_TILE_URL` and `SATELLITE_TILE_URL` settings can be changed for a suitable provider later. Esri World Imagery returned actual imagery at zoom 18 but a “Map data not yet available” tile at zoom 19 for a tested coastal Kenya location. To avoid that placeholder, BlueWatch requests no satellite tiles above `SATELLITE_MAX_NATIVE_ZOOM=18` and enlarges the last available image when users zoom further in. This preserves visual context but cannot create finer detail; imagery coverage can also vary by location. Change the threshold only after checking that the configured provider has real imagery at the higher zoom in your area. Keep each provider's required attribution visible and confirm its usage terms before production deployment. Do not replace these URLs with unofficial Google tile endpoints. All online basemaps require an internet connection.
 
 ## Earth observation and satellite mapping
 
@@ -211,9 +212,10 @@ The total is capped at 100. Default levels are Low below 20, Moderate from 20, H
 python manage.py test
 python manage.py check
 python manage.py makemigrations --check
+node --test tests/maps.test.js
 ```
 
-Tests cover anonymous submission, references, tracking privacy, login, role access, risk scoring, duplicate matching, valid/invalid transitions, assignment access, cleanup verification, content-based file validation, public/protected dashboards, cross-county object access and the health endpoint.
+Tests cover anonymous submission, references, tracking privacy, login, role access, risk scoring, duplicate matching, valid/invalid transitions, assignment access, cleanup verification, content-based file validation, public/protected dashboards, cross-county object access and the health endpoint. The optional Node.js test verifies satellite tile zoom settings and the enlarged-imagery notice without requiring npm packages.
 
 ## Media and production preparation
 
