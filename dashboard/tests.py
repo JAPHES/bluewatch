@@ -6,4 +6,5 @@ class PublicDashboardTests(TestCase):
         response=self.client.get(reverse("dashboard:public"))
         self.assertContains(response,"services.arcgisonline.com/ArcGIS/rest/services/World_Street_Map")
         self.assertContains(response,"tiles.openfreemap.org/styles/liberty")
+        self.assertContains(response,"satelliteMaxNativeZoom:18")
         self.assertNotContains(response,"tile.openstreetmap.org")
