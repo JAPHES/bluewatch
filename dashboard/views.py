@@ -5,6 +5,7 @@ from django.core.exceptions import PermissionDenied
 from django.db.models import Avg, Count, F, Q, Sum
 from django.db.models.functions import TruncMonth
 from django.shortcuts import redirect, render
+from django.urls import reverse
 from django.utils import timezone
 from accounts.access import roles_required
 from operations.models import CleanupAssignment
@@ -32,7 +33,7 @@ def county_dashboard(request):
     category=list(qs.values("waste_category__name").annotate(total=Count("id")).order_by("-total"))
     risk=list(qs.values("risk_level").annotate(total=Count("id")))
     monthly=list(qs.annotate(month=TruncMonth("date_submitted")).values("month").annotate(total=Count("id")).order_by("month"))
-    markers=[{"ref":r.reference_code,"lat":float(r.latitude),"lng":float(r.longitude),"risk":r.risk_level,"status":r.get_operational_status_display()} for r in qs[:500]]
+    markers=[{"ref":r.reference_code,"lat":float(r.latitude),"lng":float(r.longitude),"risk":r.risk_level,"status":r.get_operational_status_display(),"directions":r.google_directions_url,"detail":reverse("reports:detail",args=[r.reference_code])} for r in qs[:500]]
     metrics={"total":qs.count(),"pending":qs.filter(verification_status="pending").count(),"verified":qs.filter(verification_status="verified").count(),"critical":qs.filter(risk_level="critical").count(),"assigned":qs.filter(operational_status="assigned").count(),"cleaned":qs.filter(operational_status="cleaned").count(),"closed":qs.filter(operational_status="closed").count(),"average_response":round(avg.total_seconds()/3600,1) if avg else None}
     overdue=assignments.filter(scheduled_cleanup_date__lt=timezone.localdate()).exclude(assignment_status__in=["completed","cancelled"])
     hotspots=list(qs.values("ward__name").annotate(total=Count("id")).filter(total__gte=2).order_by("-total")[:5])
