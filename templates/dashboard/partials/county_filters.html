@@ -1,0 +1,26 @@
+<form method="get" class="filter-bar my-4" aria-label="Filter county reports">
+  <label class="visually-hidden" for="county-status">Operational status</label>
+  <select id="county-status" name="status" class="form-select">
+    <option value="">All statuses</option>
+    <option value="reported" {% if request.GET.status == 'reported' %}selected{% endif %}>Reported</option>
+    <option value="under_review" {% if request.GET.status == 'under_review' %}selected{% endif %}>Under review</option>
+    <option value="verified" {% if request.GET.status == 'verified' %}selected{% endif %}>Verified</option>
+    <option value="assigned" {% if request.GET.status == 'assigned' %}selected{% endif %}>Assigned</option>
+    <option value="cleanup_in_progress" {% if request.GET.status == 'cleanup_in_progress' %}selected{% endif %}>Cleanup in progress</option>
+    <option value="cleaned" {% if request.GET.status == 'cleaned' %}selected{% endif %}>Cleaned</option>
+    <option value="closed" {% if request.GET.status == 'closed' %}selected{% endif %}>Closed</option>
+  </select>
+  <label class="visually-hidden" for="county-risk">Risk level</label>
+  <select id="county-risk" name="risk" class="form-select">
+    <option value="">All risk levels</option>
+    <option value="low" {% if request.GET.risk == 'low' %}selected{% endif %}>Low</option>
+    <option value="moderate" {% if request.GET.risk == 'moderate' %}selected{% endif %}>Moderate</option>
+    <option value="high" {% if request.GET.risk == 'high' %}selected{% endif %}>High</option>
+    <option value="critical" {% if request.GET.risk == 'critical' %}selected{% endif %}>Critical</option>
+  </select>
+  <label class="visually-hidden" for="county-date-from">From date</label>
+  <input id="county-date-from" type="date" name="date_from" value="{{ request.GET.date_from }}" class="form-control" aria-label="From date">
+  <label class="visually-hidden" for="county-date-to">To date</label>
+  <input id="county-date-to" type="date" name="date_to" value="{{ request.GET.date_to }}" class="form-control" aria-label="To date">
+  <button class="btn btn-ocean">Apply filters</button>
+</form>
