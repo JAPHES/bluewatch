@@ -2,46 +2,42 @@
 {% block title %}County Report Map — BlueWatch{% endblock %}
 {% block head %}<link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css">{% endblock %}
 {% block content %}
-<div class="dashboard-shell">
-  <div class="container-fluid py-4">
-    <div class="d-flex justify-content-between align-items-center flex-wrap gap-3">
-      <div>
-        <span class="eyebrow text-ocean">Operations centre</span>
-        <h1 class="mb-1">County report map</h1>
-        <p class="text-muted mb-0">Explore reported dumpsites and open a case from its map marker.</p>
-      </div>
-      <a class="btn btn-outline-primary" href="{% url 'dashboard:county_insights' %}{% if request.GET %}?{{ request.GET.urlencode }}{% endif %}">
-        <i class="bi bi-bar-chart" aria-hidden="true"></i> Reports &amp; insights
-      </a>
-    </div>
-    {% include 'dashboard/partials/county_filters.html' %}
-    <section class="panel" aria-labelledby="report-map-title">
-      <div class="panel-title gap-2">
-        <div>
-          <h2 id="report-map-title" class="mb-1">Report map</h2>
-          <p class="small text-muted mb-0">{{ marker_count }} report{{ marker_count|pluralize }} shown{% if marker_count == 500 %} (first 500 matching reports){% endif %}</p>
-        </div>
-        <div class="map-legend" aria-label="Risk-level marker legend">
-          <span class="dot low"></span> Low
-          <span class="dot moderate"></span> Moderate
-          <span class="dot high"></span> High
-          <span class="dot critical"></span> Critical
-        </div>
-      </div>
-      <p id="ops-map-status" class="small text-muted mt-3" aria-live="polite">Loading map…</p>
-      <p class="small text-muted">Scroll down to view the full map. Use the + and − buttons to zoom.</p>
-      <div id="ops-map" class="map county-map" aria-label="Interactive map of county dumpsite reports"></div>
-      {% if not marker_count %}<p class="empty-state mb-0">No reports match these filters. The map remains available for exploring the area.</p>{% endif %}
-    </section>
+<section id="county-map-page" class="county-map-page" aria-labelledby="county-map-title">
+  <div id="ops-map" class="map county-map" aria-label="Interactive map of county dumpsite reports"></div>
+  <div id="county-map-tools" class="county-map-tools">
+    <span class="eyebrow text-ocean">Operations centre</span>
+    <h1 id="county-map-title">County report map</h1>
+    <p class="small text-muted">{{ marker_count }} report{{ marker_count|pluralize }} shown{% if marker_count == 500 %} (first 500 matching reports){% endif %}</p>
+    <a class="btn btn-outline-primary btn-sm mt-2" href="{% url 'dashboard:county_insights' %}{% if request.GET %}?{{ request.GET.urlencode }}{% endif %}">
+      <i class="bi bi-bar-chart" aria-hidden="true"></i> Reports &amp; insights
+    </a>
+    <details>
+      <summary>Filter reports</summary>
+      {% include 'dashboard/partials/county_filters.html' %}
+    </details>
+    <p id="ops-map-status" class="small text-muted mt-2" aria-live="polite">Loading map…</p>
+    {% if not marker_count %}<p class="small text-muted mt-2">No reports match these filters. The map remains available for exploring the area.</p>{% endif %}
   </div>
-</div>
+  <div class="county-map-legend map-legend" aria-label="Risk-level marker legend">
+    <span class="dot low"></span> Low
+    <span class="dot moderate"></span> Moderate
+    <span class="dot high"></span> High
+    <span class="dot critical"></span> Critical
+  </div>
+</section>
 {% endblock %}
+{% block footer %}{% endblock %}
 {% block scripts %}
 <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
 <script>
   const markers = {{ markers_json|safe }};
   const riskColors = {low: '#2A9D8F', moderate: '#D99B22', high: '#E76F51', critical: '#C83E4D'};
-  const map = L.map('ops-map', {scrollWheelZoom: false}).setView([-4.04, 39.67], 9);
+  const mapPage = document.getElementById('county-map-page');
+  const mapTools = document.getElementById('county-map-tools');
+  const navbar = document.querySelector('.ocean-nav');
+  mapPage.style.height = Math.max(420, window.innerHeight - navbar.offsetHeight) + 'px';
+  const map = L.map('ops-map').setView([-4.04, 39.67], 9);
+  map.zoomControl.setPosition('bottomright');
   BlueWatchMaps.addReliableBaseLayer(map, {
     primaryUrl: '{{ map_tile_url|escapejs }}',
     primaryAttribution: '{{ map_tile_attribution|escapejs }}',
@@ -55,5 +51,17 @@
   if (markers.length) {
     map.fitBounds(L.latLngBounds(markers.map(item => [item.lat, item.lng])).pad(.2), {maxZoom: 16});
   }
+  function fitMapToScreen() {
+    mapPage.style.height = Math.max(420, window.innerHeight - navbar.offsetHeight) + 'px';
+    mapPage.style.setProperty('--county-tools-height', mapTools.offsetHeight + 'px');
+    map.invalidateSize();
+  }
+  window.addEventListener('resize', fitMapToScreen);
+  if (window.ResizeObserver) {
+    const layoutObserver = new ResizeObserver(fitMapToScreen);
+    layoutObserver.observe(navbar);
+    layoutObserver.observe(mapTools);
+  }
+  fitMapToScreen();
 </script>
 {% endblock %}
