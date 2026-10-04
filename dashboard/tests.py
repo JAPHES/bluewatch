@@ -10,7 +10,10 @@ from reports.models import Report, WasteCategory
 
 
 class PublicDashboardTests(TestCase):
-    def test_public_impact_dashboard_is_public(self): self.assertEqual(self.client.get(reverse("dashboard:public")).status_code,200)
+    def test_public_impact_dashboard_is_public(self):
+        response = self.client.get(reverse("dashboard:public"))
+        self.assertEqual(response.status_code, 200)
+        self.assertContains(response, "site-footer")
     def test_public_dashboard_uses_configured_map_provider(self):
         response=self.client.get(reverse("dashboard:public"))
         self.assertContains(response,"services.arcgisonline.com/ArcGIS/rest/services/World_Street_Map")
@@ -51,7 +54,10 @@ class CountyDashboardLayoutTests(TestCase):
         response = self.client.get(reverse("dashboard:county"))
         self.assertEqual(response.status_code, 200)
         self.assertContains(response, 'id="ops-map"')
-        self.assertContains(response, 'scrollWheelZoom: false')
+        self.assertContains(response, 'id="county-map-page"')
+        self.assertContains(response, 'fitMapToScreen()')
+        self.assertContains(response, '<summary>Filter reports</summary>')
+        self.assertNotContains(response, 'site-footer')
         self.assertContains(response, self.report.reference_code)
         self.assertNotContains(response, self.other_report.reference_code)
         self.assertContains(response, reverse("dashboard:county_insights"))
