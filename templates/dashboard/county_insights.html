@@ -1,0 +1,71 @@
+{% extends 'base.html' %}
+{% block title %}County Reports & Insights — BlueWatch{% endblock %}
+{% block content %}
+<div class="dashboard-shell">
+  <div class="container-fluid py-4">
+    <div class="d-flex justify-content-between align-items-start flex-wrap gap-3">
+      <div>
+        <span class="eyebrow text-ocean">Operations centre</span>
+        <h1 class="mb-1">Reports &amp; insights</h1>
+        <p class="text-muted mb-0">Report trends, response metrics and cleanup follow-up.</p>
+      </div>
+      <div class="d-flex gap-2 flex-wrap">
+        <a class="btn btn-ocean" href="{% url 'dashboard:county' %}{% if request.GET %}?{{ request.GET.urlencode }}{% endif %}"><i class="bi bi-map" aria-hidden="true"></i> View report map</a>
+        <a class="btn btn-outline-primary" href="{% url 'earth_observation:workspace' %}"><i class="bi bi-globe-americas" aria-hidden="true"></i> Map from imagery</a>
+        {% if user.role == 'system_admin' or user.role == 'county_admin' or user.is_superuser %}<a class="btn btn-outline-primary" href="{% url 'accounts:create_user' %}"><i class="bi bi-person-plus" aria-hidden="true"></i> Add staff</a>{% endif %}
+        {% if user.role != 'analyst' or user.is_superuser %}<a class="btn btn-outline-primary" href="{% url 'operations:create' %}">New assignment</a>{% endif %}
+      </div>
+    </div>
+    {% include 'dashboard/partials/county_filters.html' %}
+    <div class="metric-grid">
+      <div class="dash-metric"><i class="bi bi-file-earmark-text" aria-hidden="true"></i><span>Total reports</span><strong>{{ metrics.total }}</strong></div>
+      <div class="dash-metric"><i class="bi bi-hourglass-split" aria-hidden="true"></i><span>Pending verification</span><strong>{{ metrics.pending }}</strong></div>
+      <div class="dash-metric"><i class="bi bi-patch-check" aria-hidden="true"></i><span>Verified</span><strong>{{ metrics.verified }}</strong></div>
+      <div class="dash-metric critical"><i class="bi bi-exclamation-octagon" aria-hidden="true"></i><span>Critical risk</span><strong>{{ metrics.critical }}</strong></div>
+      <div class="dash-metric"><i class="bi bi-people" aria-hidden="true"></i><span>Assigned</span><strong>{{ metrics.assigned }}</strong></div>
+      <div class="dash-metric"><i class="bi bi-check-circle" aria-hidden="true"></i><span>Cleaned / closed</span><strong>{{ metrics.cleaned|add:metrics.closed }}</strong></div>
+      <div class="dash-metric"><i class="bi bi-stopwatch" aria-hidden="true"></i><span>Avg response</span><strong>{% if metrics.average_response is not None %}{{ metrics.average_response }}h{% else %}—{% endif %}</strong></div>
+    </div>
+    {% if metrics.total %}
+    <div class="row g-4 mt-1">
+      <div class="col-xl-4"><section class="panel h-100"><h2>Risk distribution</h2><canvas id="riskChart" aria-label="Reports by risk level" role="img"></canvas></section></div>
+      <div class="col-xl-4"><section class="panel h-100"><h2>Reports over time</h2><canvas id="monthlyChart" aria-label="Reports over time" role="img"></canvas></section></div>
+      <div class="col-xl-4"><section class="panel h-100"><h2>Waste categories</h2><canvas id="categoryChart" aria-label="Reports by waste category" role="img"></canvas></section></div>
+    </div>
+    {% else %}<p class="empty-state panel mt-4">No reports match these filters yet. Charts will appear when reports are available.</p>{% endif %}
+    <div class="row g-4 mt-1">
+      <div class="col-xl-8">
+        <section class="panel h-100">
+          <h2>Recent reports</h2>
+          <div class="table-responsive"><table class="table align-middle">
+            <thead><tr><th>Reference</th><th>Ward</th><th>Category</th><th>Risk</th><th>Status</th></tr></thead>
+            <tbody>
+              {% for report in reports %}
+              <tr><td><a href="{% url 'reports:detail' report.reference_code %}">{{ report.reference_code }}</a></td><td>{{ report.ward.name }}</td><td>{{ report.waste_category }}</td><td><span class="status-pill risk-{{ report.risk_level }}">{{ report.get_risk_level_display }}</span></td><td>{{ report.get_operational_status_display }}</td></tr>
+              {% empty %}<tr><td colspan="5" class="empty-state">No reports match these filters.</td></tr>{% endfor %}
+            </tbody>
+          </table></div>
+        </section>
+      </div>
+      <div class="col-xl-4">
+        <section class="panel mb-4"><h2>Overdue assignments</h2>{% for item in overdue %}<a class="list-row" href="{% url 'operations:detail' item.pk %}">{{ item.report.reference_code }} <span>{{ item.scheduled_cleanup_date }}</span></a>{% empty %}<p class="empty-state">No overdue work.</p>{% endfor %}</section>
+        <section class="panel"><h2>Recurring hotspots</h2>{% for item in hotspots %}<div class="list-row">{{ item.ward__name }} <strong>{{ item.total }}</strong></div>{% empty %}<p class="empty-state">More report data is needed.</p>{% endfor %}</section>
+      </div>
+    </div>
+  </div>
+</div>
+{% endblock %}
+{% block scripts %}
+{% if metrics.total %}
+<script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.3/dist/chart.umd.min.js"></script>
+<script>
+  const risk = {{ risk_json|safe }};
+  const monthly = {{ monthly_json|safe }};
+  const categories = {{ category_json|safe }};
+  const riskColors = {low: '#2A9D8F', moderate: '#D99B22', high: '#E76F51', critical: '#C83E4D'};
+  new Chart(document.getElementById('riskChart'), {type: 'doughnut', data: {labels: risk.map(item => item.risk_level), datasets: [{data: risk.map(item => item.total), backgroundColor: risk.map(item => riskColors[item.risk_level])}]}, options: {plugins: {legend: {position: 'bottom'}}}});
+  new Chart(document.getElementById('monthlyChart'), {type: 'line', data: {labels: monthly.map(item => item.month.slice(0, 7)), datasets: [{label: 'Reports', data: monthly.map(item => item.total), borderColor: '#0077B6', tension: .3}]}});
+  new Chart(document.getElementById('categoryChart'), {type: 'bar', data: {labels: categories.map(item => item.waste_category__name), datasets: [{label: 'Reports', data: categories.map(item => item.total), backgroundColor: '#00B4D8'}]}, options: {indexAxis: 'y'}});
+</script>
+{% endif %}
+{% endblock %}
