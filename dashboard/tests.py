@@ -56,7 +56,7 @@ class CountyDashboardLayoutTests(TestCase):
         self.assertContains(response, 'id="ops-map"')
         self.assertContains(response, 'class="county-map-page"')
         self.assertContains(response, 'scrollWheelZoom: false')
-        self.assertContains(response, 'site-footer')
+        self.assertNotContains(response, 'site-footer')
         html = response.content.decode()
         self.assertLess(html.index("Filter reports"), html.index('id="ops-map"'))
         self.assertLess(html.index('id="ops-map-status"'), html.index('id="ops-map"'))
