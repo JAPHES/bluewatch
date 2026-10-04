@@ -28,16 +28,21 @@ def _county_reports(request):
 
 @roles_required("system_admin","county_admin","officer","analyst")
 def county_dashboard(request):
+    qs=_county_reports(request)
+    markers=[{"ref":r.reference_code,"lat":float(r.latitude),"lng":float(r.longitude),"risk":r.risk_level,"status":r.get_operational_status_display(),"directions":r.google_directions_url,"detail":reverse("reports:detail",args=[r.reference_code])} for r in qs[:500]]
+    return render(request,"dashboard/county.html",{"markers_json":json.dumps(markers),"marker_count":len(markers)})
+
+@roles_required("system_admin","county_admin","officer","analyst")
+def county_insights(request):
     qs=_county_reports(request); assignments=CleanupAssignment.objects.filter(report__in=qs)
     avg=assignments.filter(start_time__isnull=False).aggregate(value=Avg(F("start_time")-F("created_at")))["value"]
     category=list(qs.values("waste_category__name").annotate(total=Count("id")).order_by("-total"))
     risk=list(qs.values("risk_level").annotate(total=Count("id")))
     monthly=list(qs.annotate(month=TruncMonth("date_submitted")).values("month").annotate(total=Count("id")).order_by("month"))
-    markers=[{"ref":r.reference_code,"lat":float(r.latitude),"lng":float(r.longitude),"risk":r.risk_level,"status":r.get_operational_status_display(),"directions":r.google_directions_url,"detail":reverse("reports:detail",args=[r.reference_code])} for r in qs[:500]]
     metrics={"total":qs.count(),"pending":qs.filter(verification_status="pending").count(),"verified":qs.filter(verification_status="verified").count(),"critical":qs.filter(risk_level="critical").count(),"assigned":qs.filter(operational_status="assigned").count(),"cleaned":qs.filter(operational_status="cleaned").count(),"closed":qs.filter(operational_status="closed").count(),"average_response":round(avg.total_seconds()/3600,1) if avg else None}
     overdue=assignments.filter(scheduled_cleanup_date__lt=timezone.localdate()).exclude(assignment_status__in=["completed","cancelled"])
     hotspots=list(qs.values("ward__name").annotate(total=Count("id")).filter(total__gte=2).order_by("-total")[:5])
-    return render(request,"dashboard/county.html",{"reports":qs[:20],"metrics":metrics,"overdue":overdue,"hotspots":hotspots,"category_json":json.dumps(category),"risk_json":json.dumps(risk),"monthly_json":json.dumps(monthly,default=str),"markers_json":json.dumps(markers)})
+    return render(request,"dashboard/county_insights.html",{"reports":qs[:20],"metrics":metrics,"overdue":overdue,"hotspots":hotspots,"category_json":json.dumps(category),"risk_json":json.dumps(risk),"monthly_json":json.dumps(monthly,default=str)})
 
 @roles_required("system_admin","county_admin","officer","team_member")
 def team_dashboard(request):
