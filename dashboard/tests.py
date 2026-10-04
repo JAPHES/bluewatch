@@ -51,6 +51,7 @@ class CountyDashboardLayoutTests(TestCase):
         response = self.client.get(reverse("dashboard:county"))
         self.assertEqual(response.status_code, 200)
         self.assertContains(response, 'id="ops-map"')
+        self.assertContains(response, 'scrollWheelZoom: false')
         self.assertContains(response, self.report.reference_code)
         self.assertNotContains(response, self.other_report.reference_code)
         self.assertContains(response, reverse("dashboard:county_insights"))
