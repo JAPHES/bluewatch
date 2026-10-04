@@ -29,6 +29,7 @@
         </div>
       </div>
       <p id="ops-map-status" class="small text-muted mt-3" aria-live="polite">Loading map…</p>
+      <p class="small text-muted">Scroll down to view the full map. Use the + and − buttons to zoom.</p>
       <div id="ops-map" class="map county-map" aria-label="Interactive map of county dumpsite reports"></div>
       {% if not marker_count %}<p class="empty-state mb-0">No reports match these filters. The map remains available for exploring the area.</p>{% endif %}
     </section>
@@ -40,7 +41,7 @@
 <script>
   const markers = {{ markers_json|safe }};
   const riskColors = {low: '#2A9D8F', moderate: '#D99B22', high: '#E76F51', critical: '#C83E4D'};
-  const map = L.map('ops-map').setView([-4.04, 39.67], 9);
+  const map = L.map('ops-map', {scrollWheelZoom: false}).setView([-4.04, 39.67], 9);
   BlueWatchMaps.addReliableBaseLayer(map, {
     primaryUrl: '{{ map_tile_url|escapejs }}',
     primaryAttribution: '{{ map_tile_attribution|escapejs }}',
