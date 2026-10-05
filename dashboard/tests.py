@@ -55,6 +55,7 @@ class CountyDashboardLayoutTests(TestCase):
         self.assertEqual(response.status_code, 200)
         self.assertContains(response, 'id="ops-map"')
         self.assertContains(response, 'class="county-map-page"')
+        self.assertContains(response, 'class="county-map-card"')
         self.assertContains(response, 'class="county-map-hero"')
         self.assertContains(response, 'class="county-map-filter-panel"')
         self.assertContains(response, 'class="county-map-risk-guide"')
