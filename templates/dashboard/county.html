@@ -5,47 +5,45 @@
 <section class="county-map-page" aria-labelledby="county-map-title">
   <div class="county-map-info">
     <div class="container-fluid">
-      <header class="county-map-hero">
-        <div class="county-map-hero-copy">
-          <span class="eyebrow">BlueWatch operations centre</span>
-          <h1 id="county-map-title">County report map</h1>
-          <p>See reported dumpsites in their geographic context, open a case from its marker, and coordinate the next response.</p>
-          <div class="county-map-hero-actions">
-            <a class="btn btn-light" href="#ops-map"><i class="bi bi-map" aria-hidden="true"></i> Explore the map</a>
-            <a class="btn btn-outline-light" href="{% url 'dashboard:county_insights' %}{% if request.GET %}?{{ request.GET.urlencode }}{% endif %}">
+      <div class="county-map-card">
+        <header class="county-map-hero">
+          <div class="county-map-hero-copy">
+            <span class="eyebrow">BlueWatch operations centre</span>
+            <h1 id="county-map-title">County report map</h1>
+            <p>See reported dumpsites in context, open a case from its marker, and coordinate the next response.</p>
+          </div>
+          <div class="county-map-hero-end">
+            <div class="county-map-count" aria-label="Number of reports currently shown on the map">
+              <i class="bi bi-geo-alt-fill" aria-hidden="true"></i>
+              <span>Reports on this map</span>
+              <strong>{{ marker_count }}</strong>
+              <small>{% if marker_count == 500 %}First 500 matching reports{% else %}Based on the current filters{% endif %}</small>
+            </div>
+            <a class="btn btn-outline-light btn-sm" href="{% url 'dashboard:county_insights' %}{% if request.GET %}?{{ request.GET.urlencode }}{% endif %}">
               <i class="bi bi-bar-chart" aria-hidden="true"></i> Reports &amp; insights
             </a>
           </div>
-        </div>
-        <div class="county-map-count" aria-label="Number of reports currently shown on the map">
-          <i class="bi bi-geo-alt-fill" aria-hidden="true"></i>
-          <span>Reports on this map</span>
-          <strong>{{ marker_count }}</strong>
-          <small>{% if marker_count == 500 %}First 500 matching reports{% else %}Based on the current filters{% endif %}</small>
-        </div>
-      </header>
-      <div class="county-map-filter-panel">
-        <div class="county-map-section-heading">
-          <div>
-            <span class="eyebrow text-ocean">Focus your view</span>
-            <h2>Filter reports</h2>
+        </header>
+        <div class="county-map-filter-panel">
+          <div class="county-map-section-heading">
+            <div><span class="eyebrow text-ocean">Focus your view</span><h2>Filter reports</h2></div>
+            <p>Refine markers by status, risk and date.</p>
           </div>
-          <p>Refine the markers by status, risk and reporting date.</p>
+          {% include 'dashboard/partials/county_filters.html' %}
         </div>
-        {% include 'dashboard/partials/county_filters.html' %}
-      </div>
-      <div class="county-map-context">
-        <div class="county-map-layer-status"><i class="bi bi-layers" aria-hidden="true"></i><div><span>Map layer</span><p id="ops-map-status" class="mb-0" aria-live="polite">Loading map…</p></div></div>
-        <div class="county-map-risk-guide" aria-label="Risk-level marker legend">
-          <span class="county-map-guide-title">Marker risk</span>
-          <span class="county-map-risk"><span class="dot low"></span> Low</span>
-          <span class="county-map-risk"><span class="dot moderate"></span> Moderate</span>
-          <span class="county-map-risk"><span class="dot high"></span> High</span>
-          <span class="county-map-risk"><span class="dot critical"></span> Critical</span>
+        <div class="county-map-context">
+          <div class="county-map-layer-status"><i class="bi bi-layers" aria-hidden="true"></i><div><span>Map layer</span><p id="ops-map-status" class="mb-0" aria-live="polite">Loading map…</p></div></div>
+          <div class="county-map-risk-guide" aria-label="Risk-level marker legend">
+            <span class="county-map-guide-title">Marker risk</span>
+            <span class="county-map-risk"><span class="dot low"></span> Low</span>
+            <span class="county-map-risk"><span class="dot moderate"></span> Moderate</span>
+            <span class="county-map-risk"><span class="dot high"></span> High</span>
+            <span class="county-map-risk"><span class="dot critical"></span> Critical</span>
+          </div>
         </div>
+        <p class="county-map-hint"><i class="bi bi-mouse2" aria-hidden="true"></i> Scroll down to explore the full map. Use the + and − buttons to zoom.</p>
+        {% if not marker_count %}<p class="county-map-empty">No reports match these filters. The map remains available for exploring the area.</p>{% endif %}
       </div>
-      <p class="county-map-hint"><i class="bi bi-mouse2" aria-hidden="true"></i> Scroll down to explore the full map. Use the + and − buttons to zoom.</p>
-      {% if not marker_count %}<p class="alert alert-info mb-3">No reports match these filters. The map remains available for exploring the area.</p>{% endif %}
     </div>
   </div>
   <div id="ops-map" class="map county-map" aria-label="Interactive map of county dumpsite reports"></div>
