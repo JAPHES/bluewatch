@@ -87,7 +87,7 @@ SATELLITE_TILE_ATTRIBUTION = os.getenv(
 )
 SATELLITE_LABEL_URL = os.getenv(
     "SATELLITE_LABEL_URL",
-    "https://services.arcgisonline.com/ArcGIS/rest/services/Reference/World_Reference_Overlay/MapServer/tile/{z}/{y}/{x}",
+    "https://who.maptiles.arcgis.com/arcgis/rest/services/World_Hybrid_Overlay/MapServer/tile/{z}/{y}/{x}",
 )
 SATELLITE_LABEL_ATTRIBUTION = os.getenv(
     "SATELLITE_LABEL_ATTRIBUTION",
