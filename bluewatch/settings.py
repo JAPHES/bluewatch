@@ -94,5 +94,8 @@ SATELLITE_LABEL_ATTRIBUTION = os.getenv(
     "Labels &copy; Esri and contributing data providers",
 )
 SATELLITE_MAX_NATIVE_ZOOM = int(os.getenv("SATELLITE_MAX_NATIVE_ZOOM", "18"))
+# A browser API key is intentionally exposed only on the authenticated demo map.
+# Restrict it to the site's HTTP referrers and the Maps JavaScript API in Google Cloud.
+GOOGLE_MAPS_DEMO_KEY = os.getenv("GOOGLE_MAPS_DEMO_KEY", "").strip()
 REVERSE_GEOCODER_URL = os.getenv("REVERSE_GEOCODER_URL", "https://nominatim.openstreetmap.org/reverse")
 REVERSE_GEOCODER_CONTACT = os.getenv("REVERSE_GEOCODER_CONTACT", "")
