@@ -63,24 +63,27 @@
     const satelliteWithLabels = L.layerGroup(labels ? [satellite, labels] : [satellite]);
     const styleUrl = mapConfig.vectorStyleUrl;
     let street = basicStreet;
-    let activeLayer = options.initialLayer === "satellite" || styleUrl ? satelliteWithLabels : basicStreet;
+    let activeLayer = options.initialLayer === "satellite" || styleUrl || mapConfig.hybridStyleUrl
+      ? satelliteWithLabels : basicStreet;
     const failedLayers = new Set();
     let manualSatelliteChoice = false;
     let switchingAutomatically = false;
     let labelsLoaded = false;
     let labelsFailed = false;
+    let hybridLoaded = false;
 
     function satelliteMessage() {
       const imageryMessage = map.getZoom() > satelliteMaxNativeZoom
         ? "Showing enlarged zoom-" + satelliteMaxNativeZoom + " imagery; finer satellite detail is unavailable here."
         : "Satellite imagery loaded.";
+      if (hybridLoaded) return imageryMessage + " Roads and local place labels loaded; zoom in for more detail.";
       if (!labels) return imageryMessage;
       if (labelsFailed) return imageryMessage + " Some place labels are unavailable.";
-      return imageryMessage + (labelsLoaded ? " Place labels loaded." : " Loading place labels…");
+      return imageryMessage + (labelsLoaded ? " Road and place labels loaded." : " Loading road and place labels…");
     }
 
     const layerControl = L.control.layers(
-      { "Streets and roads": basicStreet, "Satellite with labels": satelliteWithLabels },
+      { "Streets and roads": basicStreet, "Satellite hybrid": satelliteWithLabels },
       null,
       { position: "topright", collapsed: false },
     ).addTo(map);
@@ -150,8 +153,46 @@
     }
 
     if (styleUrl) {
-      updateStatus(options.statusElementId, "Loading detailed street map…", false);
+      updateStatus(options.statusElementId, "Loading satellite hybrid map…", false);
       ensureVectorSupport().then(function () {
+        if (mapConfig.hybridStyleUrl) {
+          // The transparent OSM style adds roads and named local POIs. Keep the
+          // Esri reference layer in place until this optional detail actually loads.
+          const paneName = "bluewatch-hybrid-labels";
+          if (!map.getPane(paneName)) {
+            const pane = map.createPane(paneName);
+            pane.style.zIndex = "250"; // Above imagery tiles, below report markers.
+            pane.style.pointerEvents = "none";
+          }
+          const hybrid = L.maplibreGL({
+            style: mapConfig.hybridStyleUrl,
+            attribution: vectorAttribution,
+            attributionControl: false,
+            interactive: false,
+            canvasContextAttributes: { alpha: true },
+            pane: paneName,
+          });
+          hybrid.on("add", function () {
+            const hybridMap = hybrid.getMaplibreMap();
+            if (!hybridMap) return;
+            let settled = false;
+            // Wait until requested vector tiles and glyphs settle before
+            // removing the raster reference layer beneath them.
+            hybridMap.once("idle", function () {
+              settled = true;
+              hybridLoaded = true;
+              if (labels) satelliteWithLabels.removeLayer(labels);
+              if (map.hasLayer(satelliteWithLabels)) updateStatus(options.statusElementId, satelliteMessage(), false);
+            });
+            hybridMap.once("error", function () {
+              if (settled) return;
+              settled = true;
+              satelliteWithLabels.removeLayer(hybrid);
+              if (map.hasLayer(satelliteWithLabels)) updateStatus(options.statusElementId, satelliteMessage(), false);
+            });
+          });
+          satelliteWithLabels.addLayer(hybrid);
+        }
         const detailedStreet = L.maplibreGL({
           style: styleUrl,
           attribution: vectorAttribution,
@@ -172,12 +213,12 @@
             if (!loaded && map.hasLayer(detailedStreet)) switchLayer(satelliteWithLabels, "Detailed street map unavailable; " + satelliteMessage());
           });
         });
-        if (options.initialLayer !== "satellite" && !manualSatelliteChoice) {
+        if (activeLayer === basicStreet || (options.initialLayer === "street" && !manualSatelliteChoice)) {
           switchLayer(detailedStreet, "Loading detailed street map…");
         }
       }).catch(function () {
         if (activeLayer === satelliteWithLabels) {
-          updateStatus(options.statusElementId, "Detailed street map unavailable; " + satelliteMessage(), false);
+          updateStatus(options.statusElementId, "OpenStreetMap detail unavailable; " + satelliteMessage(), false);
         }
       });
     }
