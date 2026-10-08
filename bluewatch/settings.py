@@ -85,6 +85,14 @@ SATELLITE_TILE_ATTRIBUTION = os.getenv(
     "SATELLITE_TILE_ATTRIBUTION",
     "Imagery: Esri, Maxar, Earthstar Geographics, and the GIS User Community",
 )
+SATELLITE_LABEL_URL = os.getenv(
+    "SATELLITE_LABEL_URL",
+    "https://services.arcgisonline.com/ArcGIS/rest/services/Reference/World_Reference_Overlay/MapServer/tile/{z}/{y}/{x}",
+)
+SATELLITE_LABEL_ATTRIBUTION = os.getenv(
+    "SATELLITE_LABEL_ATTRIBUTION",
+    "Labels &copy; Esri and contributing data providers",
+)
 SATELLITE_MAX_NATIVE_ZOOM = int(os.getenv("SATELLITE_MAX_NATIVE_ZOOM", "18"))
 REVERSE_GEOCODER_URL = os.getenv("REVERSE_GEOCODER_URL", "https://nominatim.openstreetmap.org/reverse")
 REVERSE_GEOCODER_CONTACT = os.getenv("REVERSE_GEOCODER_CONTACT", "")
