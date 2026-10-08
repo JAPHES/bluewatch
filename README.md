@@ -105,6 +105,7 @@ The project reads process variables and optionally a local `.env` file through `
 | `DJANGO_SECURE_SSL_REDIRECT` | Redirect HTTP to HTTPS in production |
 | `DJANGO_HSTS_SECONDS` | HSTS duration after HTTPS is verified |
 | `BLUEWATCH_DEMO_PASSWORD` | Optional password applied explicitly to demo users |
+| `GOOGLE_MAPS_DEMO_KEY` | Optional Google Maps Demo Key for the protected county-map preview; leave blank for free maps only |
 | `MAP_VECTOR_STYLE_URL` | Browser-visible OpenFreeMap vector style URL for detailed streets (empty disables vector layer) |
 | `MAP_TILE_URL` | Browser-visible XYZ basic street fallback tile URL |
 | `MAP_TILE_ATTRIBUTION` | Required basic street-map provider attribution |
@@ -162,6 +163,17 @@ The server validates coordinates and actual image content; file extensions alone
 After submission, a reference such as `BW-2607-A1B2C3` is shown once and can be copied. Tracking uses this reference—not a database ID—and never renders names, phone numbers, email, exact staff details or internal notes. Public map coordinates are rounded. Configure a shared cache and trusted proxy/IP handling before multi-instance production deployment.
 
 ## Street maps and directions
+
+### Optional Google hybrid preview for local testing
+
+The protected county report map can display Google satellite imagery with Google's road and place labels. This is an **optional prototype preview** alongside the existing Free hybrid map; it does not change the public map, reporting form, or earth-observation canvas. The report markers and case links still come from BlueWatch's database. A label appears only where Google's map has data, so this cannot guarantee a name for every building.
+
+1. Open Google's [Maps Demo Key page](https://developers.google.com/maps/documentation/javascript/demo-key) and create a Demo Key. Google describes this key as a no-billing, no-cost option for testing and prototyping, with usage limits. Do not use it for a production deployment.
+2. In your local, Git-ignored `.env` file, set `GOOGLE_MAPS_DEMO_KEY=your-demo-key`. Do not paste the key into source code, `.env.example`, a Git commit, or a support message. The key necessarily appears in the authenticated browser's map request, so treat it as a browser key, not a server-side secret.
+3. Restart `python manage.py runserver`, sign in as a county administrator, officer, analyst, or system administrator, and open `/dashboard/county/`. Select **Google demo** above the map. Use **Free hybrid** to switch back. Filters and report links work in either view.
+4. If the preview does not load, read the status message above the map and inspect the browser console. Confirm the key is valid for the Maps JavaScript API, that the test origin is permitted, and that the Demo Key has not reached its usage limit. You need an internet connection. If the key is absent, BlueWatch automatically shows the free map.
+
+For production, use a regular Google Maps Platform API key with an appropriately configured billing account, API restrictions, website-referrer restrictions, quotas and budget alerts; review [Google's API key security guidance](https://developers.google.com/maps/api-security-best-practices). A Demo Key is not a production license or a guarantee of unlimited free usage. Do not connect to undocumented Google tile endpoints. The preview uses Google's supported Maps JavaScript API and the `hybrid` map type.
 
 Satellite hybrid mode is the default on interactive maps. It keeps Esri imagery below a transparent Esri road/reference overlay, then adds an optional transparent OpenFreeMap vector overlay for named roads and local OpenStreetMap points of interest (POIs). The vector overlay is defined in `static/maps/hybrid-overlay.json` and is shown only after it loads; if it fails, the Esri hybrid overlay remains visible. BlueWatch report markers stay above both. Zoom in to about level 14 or higher for local POI names. Neither source guarantees a label for every building: labels depend on source data, local mapping coverage, and zoom level, and will differ from Google Maps. The default Esri World Hybrid Overlay is a legacy service [scheduled for retirement in March 2028](https://www.esri.com/arcgis-blog/products/arcgis-living-atlas/announcements/sunsetting-legacy-basemaps); migrate to a supported reference provider before then. Configure `SATELLITE_LABEL_URL` and `SATELLITE_LABEL_ATTRIBUTION` together when changing providers; an empty URL disables the Esri fallback overlay.
 
