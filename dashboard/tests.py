@@ -1,6 +1,6 @@
 import secrets
 
-from django.test import TestCase
+from django.test import TestCase, override_settings
 from django.urls import reverse
 from django.utils import timezone
 
@@ -92,3 +92,30 @@ class CountyDashboardLayoutTests(TestCase):
             self.client.force_login(self.team_member)
             self.assertEqual(self.client.get(url).status_code, 403)
             self.client.logout()
+
+    @override_settings(GOOGLE_MAPS_DEMO_KEY="test-browser-key")
+    def test_google_demo_map_is_staff_only_and_keeps_county_filters(self):
+        self.client.force_login(self.officer)
+        response = self.client.get(reverse("dashboard:county"), {"map": "google", "risk": "low"})
+        self.assertEqual(response.status_code, 200)
+        self.assertContains(response, 'data-google-demo-key="test-browser-key"')
+        self.assertContains(response, "js/google-county-demo.js")
+        self.assertContains(response, 'name="map" value="google"')
+        self.assertContains(response, 'href="/dashboard/county/?risk=low"')
+        self.assertContains(response, 'href="/dashboard/county/?risk=low&amp;map=google"')
+        self.assertNotContains(response, "unpkg.com/leaflet@1.9.4/dist/leaflet.js")
+        self.assertContains(response, self.report.reference_code)
+        self.assertNotContains(response, self.other_report.reference_code)
+
+        self.client.force_login(self.team_member)
+        self.assertEqual(self.client.get(reverse("dashboard:county"), {"map": "google"}).status_code, 403)
+
+    @override_settings(GOOGLE_MAPS_DEMO_KEY="")
+    def test_google_demo_without_key_uses_free_map_and_never_exposes_key(self):
+        self.client.force_login(self.officer)
+        response = self.client.get(reverse("dashboard:county"), {"map": "google"})
+        self.assertEqual(response.status_code, 200)
+        self.assertContains(response, "Google demo is not configured; showing the free map.")
+        self.assertContains(response, "unpkg.com/leaflet@1.9.4/dist/leaflet.js")
+        self.assertNotContains(response, "data-google-demo-key")
+        self.assertNotContains(self.client.get(reverse("dashboard:public")), "test-browser-key")
