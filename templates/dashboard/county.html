@@ -1,6 +1,6 @@
-{% extends 'base.html' %}
+{% extends 'base.html' %}{% load static %}
 {% block title %}County Report Map — BlueWatch{% endblock %}
-{% block head %}<link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css">{% endblock %}
+{% block head %}{% if not google_demo_mode %}<link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css">{% endif %}{% endblock %}
 {% block content %}
 <section class="county-map-page" aria-labelledby="county-map-title">
   <div class="county-map-info">
@@ -32,7 +32,11 @@
           {% include 'dashboard/partials/county_filters.html' %}
         </div>
         <div class="county-map-context">
-          <div class="county-map-layer-status"><i class="bi bi-layers" aria-hidden="true"></i><div><span>Map layer</span><p id="ops-map-status" class="mb-0" aria-live="polite">Loading map…</p></div></div>
+          <nav class="county-map-provider" aria-label="Map provider">
+            <a href="{{ free_map_url }}" class="county-map-provider-link{% if not google_demo_mode %} active{% endif %}"{% if not google_demo_mode %} aria-current="page"{% endif %}><i class="bi bi-globe2" aria-hidden="true"></i> Free hybrid</a>
+            {% if google_demo_available %}<a href="{{ google_map_url }}" class="county-map-provider-link{% if google_demo_mode %} active{% endif %}"{% if google_demo_mode %} aria-current="page"{% endif %}><i class="bi bi-google" aria-hidden="true"></i> Google demo</a>{% else %}<span class="county-map-provider-disabled" title="Add a Maps Demo Key to your local .env file">Google demo: add key</span>{% endif %}
+          </nav>
+          <div class="county-map-layer-status"><i class="bi bi-layers" aria-hidden="true"></i><div><span>Map layer</span><p id="ops-map-status" class="mb-0" aria-live="polite">{% if google_requested_without_key %}Google demo is not configured; showing the free map.{% else %}Loading map…{% endif %}</p></div></div>
           <div class="county-map-risk-guide" aria-label="Risk-level marker legend">
             <span class="county-map-guide-title">Marker risk</span>
             <span class="county-map-risk"><span class="dot low"></span> Low</span>
@@ -41,16 +45,20 @@
             <span class="county-map-risk"><span class="dot critical"></span> Critical</span>
           </div>
         </div>
-        <p class="county-map-hint"><i class="bi bi-mouse2" aria-hidden="true"></i> Scroll down to explore the full map. Zoom in to see available road and local place names.</p>
+        <p class="county-map-hint"><i class="bi bi-mouse2" aria-hidden="true"></i> Scroll down to explore the full map. Zoom in to see available road and local place names.{% if google_demo_mode %} Google Demo Keys are for testing only, not production.{% endif %}</p>
         {% if not marker_count %}<p class="county-map-empty">No reports match these filters. The map remains available for exploring the area.</p>{% endif %}
       </div>
     </div>
   </div>
-  <div id="ops-map" class="map county-map" aria-label="Interactive map of county dumpsite reports"></div>
+  <div id="ops-map" class="map county-map" aria-label="Interactive map of county dumpsite reports"{% if google_demo_mode %} data-google-demo-key="{{ google_demo_key }}"{% endif %}></div>
 </section>
 {% endblock %}
 {% block footer %}{% endblock %}
 {% block scripts %}
+{% if google_demo_mode %}
+{{ markers|json_script:"county-google-markers" }}
+<script src="{% static 'js/google-county-demo.js' %}"></script>
+{% else %}
 <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
 <script>
   const markers = {{ markers_json|safe }};
@@ -70,4 +78,5 @@
     map.fitBounds(L.latLngBounds(markers.map(item => [item.lat, item.lng])).pad(.2), {maxZoom: 16});
   }
 </script>
+{% endif %}
 {% endblock %}
