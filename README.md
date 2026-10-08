@@ -110,6 +110,8 @@ The project reads process variables and optionally a local `.env` file through `
 | `MAP_TILE_ATTRIBUTION` | Required basic street-map provider attribution |
 | `SATELLITE_TILE_URL` | Browser-visible XYZ imagery tile URL used by interactive maps |
 | `SATELLITE_TILE_ATTRIBUTION` | Required imagery-provider attribution shown on the map |
+| `SATELLITE_LABEL_URL` | Transparent XYZ place-label tiles drawn above satellite imagery; empty disables labels |
+| `SATELLITE_LABEL_ATTRIBUTION` | Required label-provider attribution shown on the map |
 | `SATELLITE_MAX_NATIVE_ZOOM` | Highest satellite tile zoom requested (default 18); higher map zooms enlarge existing imagery |
 | `REVERSE_GEOCODER_URL` | Server-side reverse-geocoding endpoint used for quick reports |
 | `REVERSE_GEOCODER_CONTACT` | Public support contact included in the geocoder User-Agent |
@@ -160,6 +162,8 @@ The server validates coordinates and actual image content; file extensions alone
 After submission, a reference such as `BW-2607-A1B2C3` is shown once and can be copied. Tracking uses this reference—not a database ID—and never renders names, phone numbers, email, exact staff details or internal notes. Public map coordinates are rounded. Configure a shared cache and trusted proxy/IP handling before multi-instance production deployment.
 
 ## Street maps and directions
+
+Satellite mode now draws a transparent Esri reference-label layer above the imagery, including when the detailed street style cannot load. This adds available place names without hiding BlueWatch markers. The OpenFreeMap street style shows available roads and points of interest. Neither provider guarantees labels for every building: labels depend on source data, local mapping coverage, and zoom level, and may differ from Google Maps. The default Esri World Reference Overlay is a legacy service [scheduled for retirement in December 2029](https://www.esri.com/arcgis-blog/products/arcgis-living-atlas/announcements/sunsetting-legacy-basemaps); migrate to a supported reference-label provider before then. Configure `SATELLITE_LABEL_URL` and `SATELLITE_LABEL_ATTRIBUTION` together when changing providers; an empty URL disables the overlay.
 
 Interactive Leaflet maps load the detailed [OpenFreeMap](https://openfreemap.org/) Liberty vector street style through MapLibre GL, with an on-map control for switching to Esri satellite imagery and a metric scale. Satellite imagery is shown while the detailed style loads; the Esri World Street Map is a basic fallback if vector maps are unavailable. The earth-observation review canvas starts in satellite mode. Road labels and building outlines depend on the available OpenStreetMap data and zoom level, so they may differ from Google Maps. On the protected county dashboard, the title, report count, visible filters, map status and risk legend appear first; a full-width, tall report map follows below in normal page flow. Mouse-wheel scrolling moves down the page, and the map's zoom buttons remain available. The separate Reports & Insights page retains metrics and follow-up information and preserves active filters. Authorised case and cleanup-assignment pages show the exact saved report point. The public hotspot map continues to use rounded coordinates.
 
