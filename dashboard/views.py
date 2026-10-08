@@ -1,5 +1,6 @@
 import json
 from datetime import timedelta
+from django.conf import settings
 from django.contrib.auth.decorators import login_required
 from django.core.exceptions import PermissionDenied
 from django.db.models import Avg, Count, F, Q, Sum
@@ -30,7 +31,26 @@ def _county_reports(request):
 def county_dashboard(request):
     qs=_county_reports(request)
     markers=[{"ref":r.reference_code,"lat":float(r.latitude),"lng":float(r.longitude),"risk":r.risk_level,"status":r.get_operational_status_display(),"directions":r.google_directions_url,"detail":reverse("reports:detail",args=[r.reference_code])} for r in qs[:500]]
-    return render(request,"dashboard/county.html",{"markers_json":json.dumps(markers),"marker_count":len(markers)})
+    google_requested = request.GET.get("map") == "google"
+    google_available = bool(settings.GOOGLE_MAPS_DEMO_KEY)
+    google_mode = google_requested and google_available
+    filters = request.GET.copy()
+    filters.pop("map", None)
+    free_query = filters.urlencode()
+    free_url = reverse("dashboard:county") + (f"?{free_query}" if free_query else "")
+    filters["map"] = "google"
+    google_url = reverse("dashboard:county") + f"?{filters.urlencode()}"
+    return render(request,"dashboard/county.html",{
+        "markers": markers,
+        "markers_json": json.dumps(markers),
+        "marker_count": len(markers),
+        "google_requested_without_key": google_requested and not google_available,
+        "google_demo_available": google_available,
+        "google_demo_mode": google_mode,
+        "google_demo_key": settings.GOOGLE_MAPS_DEMO_KEY if google_mode else "",
+        "free_map_url": free_url,
+        "google_map_url": google_url,
+    })
 
 @roles_required("system_admin","county_admin","officer","analyst")
 def county_insights(request):
