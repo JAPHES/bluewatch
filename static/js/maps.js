@@ -50,23 +50,37 @@
       maxZoom: 20,
       // Esri can return a 200 OK "Map data not yet available" image at higher zooms.
       maxNativeZoom: satelliteMaxNativeZoom,
+      zIndex: 1,
       attribution: options.fallbackAttribution,
     });
+    // Reference tiles are transparent: keep labels above imagery and below report markers.
+    const labels = mapConfig.satelliteLabelUrl ? L.tileLayer(mapConfig.satelliteLabelUrl, {
+      maxZoom: 20,
+      maxNativeZoom: satelliteMaxNativeZoom,
+      zIndex: 2,
+      attribution: mapConfig.satelliteLabelAttribution,
+    }) : null;
+    const satelliteWithLabels = L.layerGroup(labels ? [satellite, labels] : [satellite]);
     const styleUrl = mapConfig.vectorStyleUrl;
     let street = basicStreet;
-    let activeLayer = options.initialLayer === "satellite" || styleUrl ? satellite : basicStreet;
+    let activeLayer = options.initialLayer === "satellite" || styleUrl ? satelliteWithLabels : basicStreet;
     const failedLayers = new Set();
     let manualSatelliteChoice = false;
     let switchingAutomatically = false;
+    let labelsLoaded = false;
+    let labelsFailed = false;
 
     function satelliteMessage() {
-      return map.getZoom() > satelliteMaxNativeZoom
+      const imageryMessage = map.getZoom() > satelliteMaxNativeZoom
         ? "Showing enlarged zoom-" + satelliteMaxNativeZoom + " imagery; finer satellite detail is unavailable here."
         : "Satellite imagery loaded.";
+      if (!labels) return imageryMessage;
+      if (labelsFailed) return imageryMessage + " Some place labels are unavailable.";
+      return imageryMessage + (labelsLoaded ? " Place labels loaded." : " Loading place labels…");
     }
 
     const layerControl = L.control.layers(
-      { "Streets and roads": basicStreet, "Satellite imagery": satellite },
+      { "Streets and roads": basicStreet, "Satellite with labels": satelliteWithLabels },
       null,
       { position: "topright", collapsed: false },
     ).addTo(map);
@@ -76,16 +90,16 @@
 
     map.on("baselayerchange", function (event) {
       activeLayer = event.layer;
-      if (!switchingAutomatically) manualSatelliteChoice = event.layer === satellite;
+      if (!switchingAutomatically) manualSatelliteChoice = event.layer === satelliteWithLabels;
       updateStatus(
         options.statusElementId,
-        event.layer === satellite ? satelliteMessage() : "Street map selected.",
+        event.layer === satelliteWithLabels ? satelliteMessage() : "Street map selected.",
         false,
       );
     });
 
     map.on("zoomend", function () {
-      if (activeLayer === satellite) updateStatus(options.statusElementId, satelliteMessage(), false);
+      if (activeLayer === satelliteWithLabels) updateStatus(options.statusElementId, satelliteMessage(), false);
     });
 
     function switchLayer(next, message) {
@@ -108,21 +122,32 @@
         updateStatus(options.statusElementId, "Map imagery could not be loaded. Check your internet connection.", true);
         return;
       }
-      switchLayer(satellite, "Street map unavailable; " + satelliteMessage());
+      switchLayer(satelliteWithLabels, "Street map unavailable; " + satelliteMessage());
     });
     satellite.on("load", function () {
       failedLayers.delete(satellite);
-      if (map.hasLayer(satellite)) updateStatus(options.statusElementId, satelliteMessage(), false);
+      if (map.hasLayer(satelliteWithLabels)) updateStatus(options.statusElementId, satelliteMessage(), false);
     });
     satellite.on("tileerror", function () {
       failedLayers.add(satellite);
-      if (activeLayer !== satellite) return;
+      if (activeLayer !== satelliteWithLabels) return;
       if (failedLayers.has(basicStreet)) {
         updateStatus(options.statusElementId, "Map imagery could not be loaded. Check your internet connection.", true);
         return;
       }
       switchLayer(basicStreet, "Satellite imagery unavailable; basic street map loaded instead.");
     });
+    if (labels) {
+      labels.on("load", function () {
+        labelsLoaded = true;
+        labelsFailed = false;
+        if (map.hasLayer(satelliteWithLabels)) updateStatus(options.statusElementId, satelliteMessage(), false);
+      });
+      labels.on("tileerror", function () {
+        labelsFailed = true;
+        if (map.hasLayer(satelliteWithLabels)) updateStatus(options.statusElementId, satelliteMessage(), false);
+      });
+    }
 
     if (styleUrl) {
       updateStatus(options.statusElementId, "Loading detailed street map…", false);
@@ -144,20 +169,20 @@
             if (map.hasLayer(detailedStreet)) updateStatus(options.statusElementId, "Detailed street map loaded.", false);
           });
           vectorMap.once("error", function () {
-            if (!loaded && map.hasLayer(detailedStreet)) switchLayer(satellite, "Detailed street map unavailable; " + satelliteMessage());
+            if (!loaded && map.hasLayer(detailedStreet)) switchLayer(satelliteWithLabels, "Detailed street map unavailable; " + satelliteMessage());
           });
         });
         if (options.initialLayer !== "satellite" && !manualSatelliteChoice) {
           switchLayer(detailedStreet, "Loading detailed street map…");
         }
       }).catch(function () {
-        if (activeLayer === satellite) {
+        if (activeLayer === satelliteWithLabels) {
           updateStatus(options.statusElementId, "Detailed street map unavailable; " + satelliteMessage(), false);
         }
       });
     }
 
-    return { primary: street, fallback: satellite };
+    return { primary: street, fallback: satelliteWithLabels };
   }
 
   window.BlueWatchMaps = { addReliableBaseLayer: addReliableBaseLayer };
