@@ -1,4 +1,5 @@
 <form method="get" class="filter-bar my-4" aria-label="Filter county reports">
+  {% if google_demo_mode %}<input type="hidden" name="map" value="google">{% endif %}
   <div class="county-filter-field">
     <label for="county-status">Operational status</label>
     <select id="county-status" name="status" class="form-select">
@@ -30,5 +31,5 @@
     <label for="county-date-to">To date</label>
     <input id="county-date-to" type="date" name="date_to" value="{{ request.GET.date_to }}" class="form-control">
   </div>
-  <div class="county-filter-actions"><button class="btn btn-ocean"><i class="bi bi-funnel" aria-hidden="true"></i> Apply filters</button><a href="{{ request.path }}" class="county-filter-clear">Clear</a></div>
+  <div class="county-filter-actions"><button class="btn btn-ocean"><i class="bi bi-funnel" aria-hidden="true"></i> Apply filters</button><a href="{{ request.path }}{% if google_demo_mode %}?map=google{% endif %}" class="county-filter-clear">Clear</a></div>
 </form>
